@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { autoLoadClimateIfConsented } from "./state/climateStore";
 import { GearView } from "./views/GearView";
 import { TimelineView } from "./views/TimelineView";
 
-type Tab = "timeline" | "gear";
+// Leaflet (~43 KB gzip) loads only when the map tab is opened.
+const MapView = lazy(() => import("./views/MapView"));
+
+type Tab = "timeline" | "map" | "gear";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("timeline");
@@ -20,7 +23,7 @@ export default function App() {
             </span>
           </h1>
           <nav className="flex gap-1 rounded-lg bg-neutral-100 p-1 text-sm">
-            {(["timeline", "gear"] as const).map((t) => (
+            {(["timeline", "map", "gear"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -39,7 +42,17 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-4">
-        {tab === "timeline" ? <TimelineView /> : <GearView />}
+        {tab === "timeline" ? (
+          <TimelineView />
+        ) : tab === "map" ? (
+          <Suspense
+            fallback={<p className="p-4 text-sm text-neutral-500">Loading map…</p>}
+          >
+            <MapView />
+          </Suspense>
+        ) : (
+          <GearView />
+        )}
       </main>
 
       <footer className="mx-auto max-w-3xl px-4 pb-6 text-xs text-neutral-500">

@@ -50,9 +50,14 @@ export function moonLabel(phaseName: MoonPhaseName): string {
   return phaseName.replace("-", " ");
 }
 
-/** Map °F to a hue: deep blue at ≤ -10, red at ≥ 90. */
+/**
+ * Map °F to a hue: deep blue at ≤ 10, red at ≥ 70. The compressed domain
+ * spans the lows a thru-hiker actually meets, so the cold→warm→cold arc is
+ * visible in the colors (a full -10..100 ramp parks every spring low at an
+ * indistinguishable green).
+ */
 export function tempColor(f: number): string {
-  const t = Math.min(1, Math.max(0, (f + 10) / 100));
+  const t = Math.min(1, Math.max(0, (f - 10) / 60));
   const hue = 230 - 220 * t;
   return `hsl(${hue.toFixed(0)} 75% 52%)`;
 }
