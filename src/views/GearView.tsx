@@ -187,7 +187,15 @@ function SuggestionRow({ suggestion }: { suggestion: SuggestedSwap }) {
   )?.arrivalDate;
 
   const listKey = suggestion.action === "add" ? "addItemIds" : "removeItemIds";
-  const planned = swaps.some((sw) => sw[listKey].includes(suggestion.itemId));
+  const planned = swaps.some(
+    (sw) =>
+      sw.waypointId === suggestion.waypointId && sw[listKey].includes(suggestion.itemId),
+  );
+  // Same item+action placed at a DIFFERENT town = the user overrode the
+  // suggestion; acknowledge it instead of nagging with an Accept button.
+  const override = planned
+    ? undefined
+    : swaps.find((sw) => sw[listKey].includes(suggestion.itemId));
 
   function accept() {
     const existing = swaps.find((sw) => sw.waypointId === suggestion.waypointId);
@@ -221,6 +229,10 @@ function SuggestionRow({ suggestion }: { suggestion: SuggestedSwap }) {
       </span>
       {planned ? (
         <span className="text-xs font-medium text-emerald-700">✓ in your swaps</span>
+      ) : override ? (
+        <span className="text-xs font-medium text-neutral-500">
+          ↷ planned at {waypointName(override.waypointId)} instead
+        </span>
       ) : (
         <button
           type="button"

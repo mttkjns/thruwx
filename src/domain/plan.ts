@@ -36,6 +36,39 @@ export function createDefaultPlan(today: Date = new Date()): TripPlan {
   };
 }
 
+/**
+ * Non-blocking sanity warnings for the current plan + projection. These never
+ * prevent input (the tool should let people explore); they flag plans that
+ * collide with reality.
+ */
+export function planWarnings(
+  plan: TripPlan,
+  finishDate: string,
+  today: Date = new Date(),
+): string[] {
+  const warnings: string[] = [];
+  const todayIso = today.toISOString().slice(0, 10);
+
+  if (plan.startDate < todayIso) {
+    warnings.push("Start date is in the past.");
+  }
+  // Baxter State Park typically closes Katahdin to hikers mid-October.
+  const finishYear = finishDate.slice(0, 4);
+  if (finishDate > `${finishYear}-10-15` || finishDate.slice(0, 4) !== plan.startDate.slice(0, 4)) {
+    warnings.push(
+      `This pace reaches Katahdin ${finishDate} — Baxter State Park usually closes ` +
+        "the summit to hikers around October 15.",
+    );
+  }
+  if (plan.paceMilesPerDay > 30) {
+    warnings.push(
+      "Sustained 30+ miles/day over the full trail is elite territory — most " +
+        "thru-hikers average 12–20.",
+    );
+  }
+  return warnings;
+}
+
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function isValidIsoDate(value: unknown): value is string {

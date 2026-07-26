@@ -3,6 +3,7 @@ import {
   createDefaultPlan,
   defaultStartDate,
   isValidIsoDate,
+  planWarnings,
   validateTripPlan,
 } from "./plan";
 import type { TripPlan } from "./types";
@@ -33,6 +34,39 @@ describe("createDefaultPlan", () => {
   it("is itself a valid plan", () => {
     const result = validateTripPlan(createDefaultPlan());
     expect(result.ok).toBe(true);
+  });
+});
+
+describe("planWarnings", () => {
+  const today = new Date("2026-07-26T12:00:00Z");
+  const planAt = (startDate: string, pace: number): TripPlan => ({
+    ...valid,
+    startDate,
+    paceMilesPerDay: pace,
+  });
+
+  it("is quiet for a plausible plan", () => {
+    expect(planWarnings(planAt("2027-03-01", 16), "2027-07-16", today)).toEqual([]);
+  });
+
+  it("flags a start date in the past", () => {
+    const w = planWarnings(planAt("2026-01-01", 16), "2026-05-18", today);
+    expect(w.some((x) => x.includes("past"))).toBe(true);
+  });
+
+  it("flags finishing after Baxter's mid-October close", () => {
+    const w = planWarnings(planAt("2027-05-01", 10), "2027-12-08", today);
+    expect(w.some((x) => x.includes("Baxter"))).toBe(true);
+  });
+
+  it("flags a finish that rolls into the next calendar year", () => {
+    const w = planWarnings(planAt("2027-09-01", 8), "2028-06-01", today);
+    expect(w.some((x) => x.includes("Baxter"))).toBe(true);
+  });
+
+  it("flags elite pace", () => {
+    const w = planWarnings(planAt("2027-03-01", 35), "2027-05-03", today);
+    expect(w.some((x) => x.includes("elite"))).toBe(true);
   });
 });
 

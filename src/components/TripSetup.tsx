@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
+import { planWarnings } from "../domain/plan";
 import { downloadPlan, parsePlanJson } from "../state/planIO";
 import { usePlanStore } from "../state/planStore";
+import { useProjection } from "../state/useProjection";
 
 /** Start date + pace, plus plan portability (export / import / reset). */
 export function TripSetup() {
@@ -12,6 +14,8 @@ export function TripSetup() {
 
   const fileInput = useRef<HTMLInputElement>(null);
   const [importErrors, setImportErrors] = useState<string[]>([]);
+  const projection = useProjection();
+  const warnings = planWarnings(plan, projection.finishDate);
 
   async function onImportFile(file: File | undefined) {
     if (!file) return;
@@ -90,6 +94,14 @@ export function TripSetup() {
           />
         </div>
       </div>
+
+      {warnings.length > 0 && (
+        <ul className="mt-3 space-y-1 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+          {warnings.map((w) => (
+            <li key={w}>⚠ {w}</li>
+          ))}
+        </ul>
+      )}
 
       {importErrors.length > 0 && (
         <div className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-800">

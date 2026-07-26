@@ -39,6 +39,16 @@ export default function App() {
       <main className="mx-auto max-w-3xl px-4 py-4">
         {tab === "timeline" ? <TimelineView /> : <GearView />}
       </main>
+
+      <footer className="mx-auto max-w-3xl px-4 pb-6 text-xs text-neutral-500">
+        <p>
+          Temperatures are 1991–2020 historical normals (NOAA data via RCC-ACIS),
+          corrected from each weather station to the trail's elevation at 3.5°F per
+          1,000 ft. They describe <span className="font-medium">typical</span>{" "}
+          conditions for a date — <span className="font-medium">not a forecast</span>.
+          Any given week can be far colder, hotter, or wetter. Elevations from USGS 3DEP.
+        </p>
+      </footer>
     </div>
   );
 }

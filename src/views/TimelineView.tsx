@@ -1,4 +1,5 @@
 import { TripSetup } from "../components/TripSetup";
+import { WelcomeBanner } from "../components/WelcomeBanner";
 import { WaypointRow } from "../components/WaypointRow";
 import { fmtDate } from "../components/format";
 import { usePlanStore } from "../state/planStore";
@@ -11,6 +12,7 @@ export function TimelineView() {
 
   return (
     <div className="space-y-4">
+      <WelcomeBanner />
       <TripSetup />
 
       <p className="px-1 text-sm text-neutral-600">
@@ -26,10 +28,6 @@ export function TimelineView() {
         ))}
       </ol>
 
-      <p className="px-1 pb-4 text-xs text-neutral-500">
-        Temperatures are 1991–2020 historical normals, corrected from each weather
-        station to the trail's elevation. Typical conditions, not a forecast.
-      </p>
     </div>
   );
 }
