@@ -8,6 +8,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createDefaultPlan, PLAN_SCHEMA_VERSION, validateTripPlan } from "../domain/plan";
 import type { GearItem, GearSwap, TripPlan } from "../domain/types";
+import { newId } from "./ids";
 
 interface PlanState {
   plan: TripPlan;
@@ -49,7 +50,7 @@ export const usePlanStore = create<PlanState>()(
       setPlanName: (name) => set((s) => ({ plan: { ...s.plan, name } })),
 
       addGearItem: (item) => {
-        const id = crypto.randomUUID();
+        const id = newId();
         set((s) => ({ plan: { ...s.plan, gear: [...s.plan.gear, { ...item, id }] } }));
         return id;
       },
@@ -76,7 +77,7 @@ export const usePlanStore = create<PlanState>()(
         })),
 
       addSwap: (swap) => {
-        const id = crypto.randomUUID();
+        const id = newId();
         set((s) => ({ plan: { ...s.plan, swaps: [...s.plan.swaps, { ...swap, id }] } }));
         return id;
       },
@@ -104,7 +105,7 @@ export const usePlanStore = create<PlanState>()(
       resetPlan: () => set({ plan: createDefaultPlan() }),
     }),
     {
-      name: "ridgeline-plan",
+      name: "thruwx-plan",
       version: PLAN_SCHEMA_VERSION,
       storage: createJSONStorage(() =>
         typeof window !== "undefined" ? window.localStorage : noopStorage,
