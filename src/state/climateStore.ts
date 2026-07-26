@@ -14,7 +14,7 @@ import climateUrl from "../data/climate.json?url";
 
 export const CLIMATE_SIZE_NOTE = "1.4 MB (≈140 KB compressed)";
 
-const AUTOLOAD_KEY = "ridgeline-climate-autoload";
+const AUTOLOAD_KEY = "thruwx-climate-autoload";
 
 export type ClimateStatus = "idle" | "loading" | "ready" | "error";
 

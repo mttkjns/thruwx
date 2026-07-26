@@ -90,6 +90,6 @@ describe("plan IO round-trip", () => {
     store().setPlanName("My AT Thru-Hike!");
     expect(planFileName(store().plan)).toBe("my-at-thru-hike-2027-03-15.json");
     store().setPlanName(undefined);
-    expect(planFileName(store().plan)).toBe("ridgeline-plan-2027-03-15.json");
+    expect(planFileName(store().plan)).toBe("thruwx-plan-2027-03-15.json");
   });
 });

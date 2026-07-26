@@ -1,5 +1,5 @@
 /**
- * Ridgeline domain model.
+ * ThruWx domain model.
  *
  * The single source of truth for the app's data shapes. Pure types only — no logic,
  * no React. Three layers, kept deliberately separate:

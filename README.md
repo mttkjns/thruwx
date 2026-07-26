@@ -1,8 +1,8 @@
-# Ridgeline
+# ThruWx
 
 Weather + gear planning for Appalachian Trail thru-hikers.
 
-Given a start date, direction (NOBO), and pace, Ridgeline projects where you'll
+Given a start date, direction (NOBO), and pace, ThruWx projects where you'll
 be on every date of a 4–8 month hike and shows the **typical weather** you can
 expect there — 1991–2020 historical climate normals, corrected from each
 weather station's elevation to the trail's elevation (~3.5°F colder per

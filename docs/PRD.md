@@ -1,6 +1,6 @@
-# Ridgeline — Product Requirements
+# ThruWx — Product Requirements
 
-*Working title. A weather-and-gear planning tool for Appalachian Trail thru-hikers.*
+*A weather-and-gear planning tool for Appalachian Trail thru-hikers.*
 
 ## 1. Problem & goal
 

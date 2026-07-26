@@ -1,7 +1,7 @@
-# CLAUDE.md — Ridgeline
+# CLAUDE.md — ThruWx
 
-> Working title: **Ridgeline** (rename freely). A weather + gear planning tool for
-> Appalachian Trail thru-hikers.
+> **ThruWx** — a weather + gear planning tool for Appalachian Trail thru-hikers.
+> (Name is final; display name "ThruWx", package/storage-key prefix "thruwx".)
 
 This file is loaded at the start of every Claude Code session. Keep it high-signal.
 Read `docs/PRD.md` for full product detail and `docs/BUILD_PLAN.md` for the phased task list.

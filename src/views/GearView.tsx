@@ -275,7 +275,7 @@ export function GearView() {
         </div>
         <p className="mt-1 text-sm text-neutral-500">
           Give an item a comfort threshold (the low °F at which you want it) and
-          Ridgeline will suggest where to swap it. No threshold = fully manual.
+          ThruWx will suggest where to swap it. No threshold = fully manual.
         </p>
         {gear.length > 0 && (
           <ul className="mt-3 space-y-2">

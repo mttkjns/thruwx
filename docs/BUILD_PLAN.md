@@ -1,4 +1,4 @@
-# Ridgeline — Build Plan
+# ThruWx — Build Plan
 
 A phased plan for building the MVP with Claude Code. Each phase ends in something
 runnable or verifiable. Do the risky, uncertain work first (Phase 0) before committing

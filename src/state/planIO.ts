@@ -21,11 +21,11 @@ export function parsePlanJson(text: string): PlanValidation {
 }
 
 export function planFileName(plan: TripPlan): string {
-  const label = (plan.name ?? "ridgeline-plan")
+  const label = (plan.name ?? "thruwx-plan")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  return `${label || "ridgeline-plan"}-${plan.startDate}.json`;
+  return `${label || "thruwx-plan"}-${plan.startDate}.json`;
 }
 
 /** Trigger a browser download of the plan. Browser-only. */

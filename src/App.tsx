@@ -17,7 +17,7 @@ export default function App() {
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <h1 className="text-xl font-bold tracking-tight">
-            Ridgeline
+            ThruWx
             <span className="ml-2 hidden text-sm font-normal text-neutral-500 sm:inline">
               AT thru-hike weather planner
             </span>

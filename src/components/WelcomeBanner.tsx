@@ -33,7 +33,7 @@ export function WelcomeBanner() {
         </li>
         <li>
           Add your gear on the <span className="font-medium">Gear</span> tab with a
-          comfort threshold, and Ridgeline suggests which towns to swap it at.
+          comfort threshold, and ThruWx suggests which towns to swap it at.
         </li>
       </ol>
     </section>
