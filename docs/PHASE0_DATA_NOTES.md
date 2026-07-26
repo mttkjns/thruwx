@@ -69,6 +69,33 @@ Station elevations (`stationElevationFt`) come from ACIS `StnMeta` `elev`,
 not from EPQS — the lapse correction needs the station's own recorded
 elevation.
 
+## Phase 2 addendum — station assignment findings (2026-07-26)
+
+`scripts/assign-stations.ts` assigns each waypoint the nearest station that
+(a) spans 1991–2020 in `valid_daterange` for all three elements AND (b) is
+≤10% missing per element **within** the window, verified against the actual
+daily data. (b) is essential: 17 candidate stations passed (a) but were hollow
+inside — Pedlar Dam VA 92% missing temps, Carlisle PA 56% missing everything,
+Beltzville Dam PA with zero Jan 1 observations in 30 years.
+
+Known coverage gaps (nearest clean station is far; normals still useful after
+lapse correction, but local effects are less represented):
+
+- **Southern VT / Berkshires desert:** Bennington→Glens Falls NY (38 mi),
+  Manchester Center→Whitehall NY (32 mi), Mt Greylock→Albany AP (33 mi),
+  Dalton→Amherst MA (32 mi). Pittsfield/North Adams airports both have ~20–27%
+  holes in the window.
+- **100-Mile Wilderness / Katahdin:** Katahdin→Brassua Dam (46 mi);
+  Millinocket AP has ~19–25% holes.
+- Delaware Water Gap→Allentown AP (28 mi), Glencliff→Hanover (28 mi),
+  Bear Mountain→Westchester Co AP (23 mi).
+- Blue Marsh Lake PA (Port Clinton) warns at 13.5% pcpn missing in the
+  pipeline (vs 10.0% in the screen) because the pipeline also discards
+  unparseable multi-day-accumulation codes; accepted as-is.
+
+High-elevation wins: Clingmans Dome→Mt LeConte (6,493 ft), Roan
+Highlands→Grandfather Mtn (5,280 ft), Mt Washington→its summit station.
+
 ## Phase 0 status
 
 - [x] ACIS spike — parses, M/T handled, normals computed and eyeballed.
