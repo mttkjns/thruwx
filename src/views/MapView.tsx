@@ -3,6 +3,7 @@ import { CircleMarker, MapContainer, Polyline, Popup, TileLayer } from "react-le
 import "leaflet/dist/leaflet.css";
 import { HikeChart } from "../components/HikeChart";
 import { LoadClimateCard } from "../components/LoadClimateCard";
+import { PlanSummary } from "../components/PlanSummary";
 import { fmtDate, fmtTemp, tempColor } from "../components/format";
 import { useProjection, WAYPOINTS } from "../state/useProjection";
 
@@ -27,9 +28,12 @@ export default function MapView() {
 
   return (
     <div className="space-y-4">
+      <PlanSummary />
       <LoadClimateCard />
 
-      <div className="overflow-hidden rounded-xl border border-neutral-200 shadow-sm">
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <div>
+          <div className="overflow-hidden rounded-xl border border-neutral-200 shadow-sm">
         <MapContainer
           bounds={POSITIONS}
           boundsOptions={{ padding: [20, 20] }}
@@ -88,16 +92,18 @@ export default function MapView() {
               </CircleMarker>
             );
           })}
-        </MapContainer>
+          </MapContainer>
+          </div>
+
+          <p className="mt-2 px-1 text-xs text-neutral-500">
+            Markers are colored by the elevation-corrected normal low on your projected
+            arrival date (blue = cold, red = warm). The dashed line connects waypoints
+            for orientation — it is not the trail centerline.
+          </p>
+        </div>
+
+        <HikeChart onHoverWaypoint={setHoverId} />
       </div>
-
-      <p className="px-1 text-xs text-neutral-500">
-        Markers are colored by the elevation-corrected normal low on your projected
-        arrival date (blue = cold, red = warm). The dashed line connects waypoints
-        for orientation — it is not the trail centerline.
-      </p>
-
-      <HikeChart onHoverWaypoint={setHoverId} />
     </div>
   );
 }

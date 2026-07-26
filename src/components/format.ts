@@ -29,6 +29,13 @@ export function fmtTimeET(isoInstant: string): string {
     .toLowerCase();
 }
 
+/** "≈4.8 months" from a day count (mean month = 30.44 days). */
+export function fmtApproxMonths(days: number): string {
+  const months = days / 30.44;
+  const rounded = Math.round(months * 10) / 10;
+  return `≈${rounded} ${rounded === 1 ? "month" : "months"}`;
+}
+
 export function fmtDayLength(hours: number): string {
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);

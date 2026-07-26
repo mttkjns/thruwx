@@ -30,11 +30,14 @@ const COLOR = {
   daylight: "#eda100", // slot 4 yellow
 };
 
-const W = 720;
-const ML = 46; // left margin: y ticks
-const MR = 14;
-const PANEL_TITLE_H = 22;
-const X_AXIS_H = 26;
+// viewBox width ≈ the rendered pixel width of the desktop side-by-side column,
+// so 1 SVG unit ≈ 1px and font sizes below mean what they say. Total height is
+// tuned so the chart card roughly matches the 70vh map beside it.
+const W = 560;
+const ML = 54; // left margin: y ticks
+const MR = 16;
+const PANEL_TITLE_H = 26;
+const X_AXIS_H = 28;
 
 const NAME_BY_ID = new Map(WAYPOINTS.map((w) => [w.id, w.name]));
 
@@ -146,14 +149,16 @@ export function HikeChart({
     fmt: (v: number) => string;
   }
   const panels: Panel[] = [];
-  let cursor = 6;
+  // Headroom lane so the full-moon glyphs render whole above the first panel.
+  const MOON_LANE_H = 22;
+  let cursor = MOON_LANE_H;
   const push = (key: string, title: string, h: number, min: number, max: number, ticks: number[], fmt: (v: number) => string) => {
     cursor += PANEL_TITLE_H;
     panels.push({ key, title, top: cursor, h, min, max, ticks, fmt });
     cursor += h + 14;
   };
   if (showTemp)
-    push("temp", "Temperature (°F, corrected)", 150, tempMin, tempMax,
+    push("temp", "Temperature (°F, corrected)", 160, tempMin, tempMax,
       ticksBetween(tempMin, tempMax, tempMax - tempMin > 60 ? 20 : 10), (v) => `${v}°`);
   if (show.wet) push("wet", "Chance of a wet day (%)", 90, 0, 100, [0, 50, 100], (v) => `${v}%`);
   if (show.daylight)
@@ -262,13 +267,13 @@ export function HikeChart({
               const sy = syFor(p);
               return (
                 <g key={p.key}>
-                  <text x={ML} y={p.top - 7} fontSize="11" fontWeight="600" fill={INK_2}>
+                  <text x={ML} y={p.top - 7} fontSize="15" fontWeight="600" fill={INK_2}>
                     {p.title}
                   </text>
                   {p.ticks.map((v) => (
                     <g key={v}>
                       <line x1={ML} x2={W - MR} y1={sy(v)} y2={sy(v)} stroke={GRID} strokeWidth="1" />
-                      <text x={ML - 6} y={sy(v) + 3.5} fontSize="10" fill={MUTED} textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      <text x={ML - 6} y={sy(v) + 3.5} fontSize="13" fill={MUTED} textAnchor="end" style={{ fontVariantNumeric: "tabular-nums" }}>
                         {p.fmt(v)}
                       </text>
                     </g>
@@ -316,8 +321,8 @@ export function HikeChart({
                 const x = sx(day);
                 return (
                   <g key={iso}>
-                    <line x1={x} x2={x} y1={panels[0].top - 2} y2={cursor - 14} stroke={BASE} strokeWidth="1" />
-                    <text x={x} y={panels[0].top - 24 < 4 ? 10 : panels[0].top - 24} fontSize="10" textAnchor="middle" aria-label={`Full moon ${fmtDate(iso)}`}>
+                    <line x1={x} x2={x} y1={20} y2={cursor - 16} stroke={BASE} strokeWidth="1" />
+                    <text x={x} y={15} fontSize="13" textAnchor="middle" aria-label={`Full moon ${fmtDate(iso)}`}>
                       🌕
                     </text>
                   </g>
@@ -331,7 +336,7 @@ export function HikeChart({
 
             {/* x axis */}
             {xTicks.map((t) => (
-              <text key={t.day} x={sx(t.day)} y={H - 8} fontSize="10" fill={MUTED} textAnchor="middle" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <text key={t.day} x={sx(t.day)} y={H - 8} fontSize="13" fill={MUTED} textAnchor="middle" style={{ fontVariantNumeric: "tabular-nums" }}>
                 {t.label}
               </text>
             ))}

@@ -1,5 +1,6 @@
 import type { GearCategory, GearItem, SuggestedSwap } from "../domain/types";
 import { LoadClimateCard } from "../components/LoadClimateCard";
+import { PlanSummary } from "../components/PlanSummary";
 import { fmtDate } from "../components/format";
 import { useClimateStore } from "../state/climateStore";
 import { usePlanStore } from "../state/planStore";
@@ -262,6 +263,8 @@ export function GearView() {
 
   return (
     <div className="space-y-6 pb-8">
+      <PlanSummary />
+
       <section>
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold text-neutral-900">Gear</h2>

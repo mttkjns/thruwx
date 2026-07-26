@@ -41,7 +41,8 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-4">
+      {/* The map tab pairs map + chart side by side on desktop and needs the width. */}
+      <main className={`mx-auto ${tab === "map" ? "max-w-7xl" : "max-w-3xl"} px-4 py-4`}>
         {tab === "timeline" ? (
           <TimelineView />
         ) : tab === "map" ? (
