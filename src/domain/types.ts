@@ -109,11 +109,10 @@ export type ClimateData = Record<StationId, DailyNormal[]>;
 /* ------------------------------------------------------------------ */
 
 /**
- * Hike direction. MVP supports NOBO only (mile 0 = Springer, GA → northern terminus).
- * SOBO and flip-flop are the same engine run differently and are post-MVP; widen this
- * union when they land.
+ * Hike direction. NOBO: mile 0 (Springer, GA) → Katahdin. SOBO: Katahdin →
+ * Springer; miles hiked = totalMiles − trailMile. Flip-flop is post-MVP.
  */
-export type HikeDirection = "NOBO";
+export type HikeDirection = "NOBO" | "SOBO";
 
 /**
  * Suggested grouping for UI; not enforced as an exhaustive list — treat unknown values

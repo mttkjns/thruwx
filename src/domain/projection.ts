@@ -24,9 +24,14 @@ export function buildProjection(
     throw new Error("buildProjection requires at least one waypoint");
   }
 
+  // Schedule entries come back in HIKE order (reversed for SOBO); resolve
+  // waypoints by id rather than by index. Everything downstream — timeline
+  // order, the swap-suggestion walk, finish date — inherits hike order.
+  const byId = new Map(waypoints.map((w) => [w.id, w]));
   const schedule = projectSchedule(plan, waypoints);
-  const projectedWaypoints: WaypointProjection[] = waypoints.map((wp, i) => {
-    const { arrivalDate, dayOfHike } = schedule[i];
+  const projectedWaypoints: WaypointProjection[] = schedule.map((entry) => {
+    const wp = byId.get(entry.waypointId)!;
+    const { arrivalDate, dayOfHike } = entry;
     const { sun, moon } = sunAndMoon(arrivalDate, wp.lat, wp.lng);
     return {
       waypointId: wp.id,

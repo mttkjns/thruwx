@@ -14,8 +14,8 @@ expect at each point along the trail, and help them plan gear changes in advance
 including where along the trail to make each swap.
 
 **Non-goals (MVP):** live/real-time forecasting; pack-weight or base-weight tracking;
-full gear-inventory management; social/community features; native mobile apps; SOBO and
-flip-flop itineraries.
+full gear-inventory management; social/community features; native mobile apps; flip-flop
+itineraries. (SOBO was a non-goal for MVP and shipped shortly after.)
 
 ## 2. Primary user & core story
 
@@ -58,7 +58,8 @@ gear-swap points to real towns and dates.
 ### 5.1 Trip setup
 - Set **start date**.
 - Set **pace** as average miles/day (single value for MVP).
-- Direction fixed to **NOBO** (mile 0 = Springer Mtn, GA).
+- Direction: **NOBO** (mile 0 = Springer Mtn, GA → Katahdin) or **SOBO**
+  (Katahdin → Springer; shipped post-MVP).
 - From these, the app computes the projected arrival date at every waypoint.
 
 ### 5.2 Weather timeline (the hero view)
@@ -126,7 +127,7 @@ gear-swap points to real towns and dates.
 
 ## 8. Later (post-MVP, explicitly out of scope now)
 
-- SOBO and flip-flop itineraries (same engine, different projection).
+- Flip-flop itineraries (same engine, different projection). SOBO shipped post-MVP.
 - Variable/per-section pace and an early ramp-up curve.
 - Interpolating weather between waypoints along the full centerline.
 - Overlaying real short-term forecasts onto the near-term slice as the start date nears.

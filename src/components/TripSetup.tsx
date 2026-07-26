@@ -9,6 +9,7 @@ export function TripSetup() {
   const plan = usePlanStore((s) => s.plan);
   const setStartDate = usePlanStore((s) => s.setStartDate);
   const setPace = usePlanStore((s) => s.setPace);
+  const setDirection = usePlanStore((s) => s.setDirection);
   const importPlan = usePlanStore((s) => s.importPlan);
   const resetPlan = usePlanStore((s) => s.resetPlan);
 
@@ -39,6 +40,17 @@ export function TripSetup() {
             value={plan.startDate}
             onChange={(e) => e.target.value && setStartDate(e.target.value)}
           />
+        </label>
+        <label className="block text-sm text-neutral-700">
+          Direction
+          <select
+            className="mt-1 block rounded-md border border-neutral-300 p-2"
+            value={plan.direction}
+            onChange={(e) => setDirection(e.target.value as "NOBO" | "SOBO")}
+          >
+            <option value="NOBO">NOBO (Springer → Katahdin)</option>
+            <option value="SOBO">SOBO (Katahdin → Springer)</option>
+          </select>
         </label>
         <label className="block text-sm text-neutral-700">
           Pace (mi/day)

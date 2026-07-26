@@ -68,6 +68,18 @@ describe("planWarnings", () => {
     const w = planWarnings(planAt("2027-03-01", 35), "2027-05-03", today);
     expect(w.some((x) => x.includes("elite"))).toBe(true);
   });
+
+  it("SOBO: flags starting before Baxter opens, not the finish", () => {
+    const sobo: TripPlan = { ...valid, direction: "SOBO", startDate: "2027-04-01" };
+    const w = planWarnings(sobo, "2027-08-19", today);
+    expect(w.some((x) => x.includes("southbounders"))).toBe(true);
+    expect(w.some((x) => x.includes("closes"))).toBe(false);
+  });
+
+  it("SOBO: quiet for a mid-June start", () => {
+    const sobo: TripPlan = { ...valid, direction: "SOBO", startDate: "2027-06-15" };
+    expect(planWarnings(sobo, "2027-11-01", today)).toEqual([]);
+  });
 });
 
 describe("isValidIsoDate", () => {
@@ -101,13 +113,19 @@ describe("validateTripPlan", () => {
     const result = validateTripPlan({
       schemaVersion: 99,
       startDate: "not-a-date",
-      direction: "SOBO",
+      direction: "YOYO",
       paceMilesPerDay: -3,
       gear: [],
       swaps: [],
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.errors.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("accepts SOBO plans and preserves the direction", () => {
+    const result = validateTripPlan({ ...valid, direction: "SOBO" });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.plan.direction).toBe("SOBO");
   });
 
   it("rejects swaps that reference unknown gear", () => {

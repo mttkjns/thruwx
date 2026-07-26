@@ -7,13 +7,14 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createDefaultPlan, PLAN_SCHEMA_VERSION, validateTripPlan } from "../domain/plan";
-import type { GearItem, GearSwap, TripPlan } from "../domain/types";
+import type { GearItem, GearSwap, HikeDirection, TripPlan } from "../domain/types";
 import { newId } from "./ids";
 
 interface PlanState {
   plan: TripPlan;
   setStartDate: (startDate: string) => void;
   setPace: (paceMilesPerDay: number) => void;
+  setDirection: (direction: HikeDirection) => void;
   setPlanName: (name: string | undefined) => void;
   addGearItem: (item: Omit<GearItem, "id">) => string;
   updateGearItem: (id: string, patch: Partial<Omit<GearItem, "id">>) => void;
@@ -46,6 +47,8 @@ export const usePlanStore = create<PlanState>()(
 
       setPace: (paceMilesPerDay) =>
         set((s) => ({ plan: { ...s.plan, paceMilesPerDay } })),
+
+      setDirection: (direction) => set((s) => ({ plan: { ...s.plan, direction } })),
 
       setPlanName: (name) => set((s) => ({ plan: { ...s.plan, name } })),
 

@@ -12,16 +12,26 @@ export interface ScheduleEntry {
 }
 
 /**
- * Arrival date per waypoint: startDate + floor(trailMile / paceMilesPerDay).
- * Floor, not round — reaching mile 31.7 at 15 mi/day happens during day 2
- * (0-based), even though 31.7/15 ≈ 2.11.
+ * Arrival date per waypoint, returned in HIKE order (NOBO: ascending trail
+ * mile; SOBO: descending — the hike starts at Katahdin and trailMile keeps
+ * its NOBO meaning, so miles hiked = maxMile − trailMile).
+ *
+ * dayOfHike = floor(milesHiked / paceMilesPerDay). Floor, not round —
+ * reaching mile 31.7 at 15 mi/day happens during day 2 (0-based), even
+ * though 31.7/15 ≈ 2.11.
  */
 export function projectSchedule(plan: TripPlan, waypoints: Waypoint[]): ScheduleEntry[] {
   if (!(plan.paceMilesPerDay > 0)) {
     throw new Error(`paceMilesPerDay must be positive, got ${plan.paceMilesPerDay}`);
   }
-  return waypoints.map((wp) => {
-    const dayOfHike = Math.floor(wp.trailMile / plan.paceMilesPerDay);
+  const sobo = plan.direction === "SOBO";
+  const maxMile = Math.max(...waypoints.map((w) => w.trailMile));
+  const ordered = [...waypoints].sort((a, b) =>
+    sobo ? b.trailMile - a.trailMile : a.trailMile - b.trailMile,
+  );
+  return ordered.map((wp) => {
+    const milesHiked = sobo ? maxMile - wp.trailMile : wp.trailMile;
+    const dayOfHike = Math.floor(milesHiked / plan.paceMilesPerDay);
     return {
       waypointId: wp.id,
       arrivalDate: addDays(plan.startDate, dayOfHike),

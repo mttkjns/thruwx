@@ -16,6 +16,9 @@ const POSITIONS = WAYPOINTS.map((w) => [w.lat, w.lng] as [number, number]);
  */
 export default function MapView() {
   const projection = useProjection();
+  // Projection order is hike order (reversed for SOBO); markers are placed
+  // geographically, so look up by id instead of pairing indexes.
+  const projById = new Map(projection.waypoints.map((p) => [p.waypointId, p]));
 
   return (
     <div className="space-y-4">
@@ -36,8 +39,8 @@ export default function MapView() {
             positions={POSITIONS}
             pathOptions={{ color: "#525252", weight: 2, dashArray: "4 6", opacity: 0.7 }}
           />
-          {WAYPOINTS.map((w, i) => {
-            const pw = projection.waypoints[i];
+          {WAYPOINTS.map((w) => {
+            const pw = projById.get(w.id)!;
             const weather = pw.weather;
             return (
               <CircleMarker

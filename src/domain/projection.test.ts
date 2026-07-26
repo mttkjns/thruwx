@@ -125,4 +125,27 @@ describe("buildProjection", () => {
   it("rejects an empty waypoint list", () => {
     expect(() => buildProjection(plan, [], climate)).toThrow();
   });
+
+  describe("SOBO", () => {
+    const soboPlan: TripPlan = { ...plan, startDate: "2026-06-15", direction: "SOBO" };
+    const sobo = buildProjection(soboPlan, waypoints, climate);
+
+    it("orders waypoints Katahdin-first and finishes at Springer", () => {
+      expect(sobo.waypoints.map((w) => w.waypointId)).toEqual([
+        "katahdin",
+        "nostation",
+        "springer",
+      ]);
+      expect(sobo.waypoints[0].dayOfHike).toBe(0);
+      expect(sobo.waypoints[0].arrivalDate).toBe("2026-06-15");
+      expect(sobo.totalDays).toBe(137);
+      expect(sobo.finishDate).toBe("2026-10-30");
+    });
+
+    it("weather still resolves per waypoint (elevation, not order)", () => {
+      const katahdin = sobo.waypoints[0].weather!;
+      expect(katahdin.elevationDeltaFt).toBe(5267 - 780);
+      expect(sobo.waypoints[1].weather).toBeNull();
+    });
+  });
 });

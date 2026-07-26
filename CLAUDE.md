@@ -67,7 +67,8 @@ Runtime:     React SPA loads the two JSON files, does all math in-browser,
 - **DailyNormal** — per station, per day-of-year (1–366): `{ normalMaxF, normalMinF,
   normalPrecipIn, freezeProbability, precipProbability }`.
 - **TripPlan** (user state, persisted) — `{ startDate, direction, paceMilesPerDay,
-  gear: GearItem[], swaps: GearSwap[] }`. Direction is `"NOBO"` only for MVP.
+  gear: GearItem[], swaps: GearSwap[] }`. Direction is `"NOBO" | "SOBO"`
+  (flip-flop is post-MVP).
 - **GearItem** — `{ id, name, category, comfortThresholdF?, notes? }`. The threshold
   is **optional**: if present, the app can *suggest* swap points; if absent, the item
   is managed purely manually.
@@ -78,8 +79,10 @@ Runtime:     React SPA loads the two JSON files, does all math in-browser,
 
 ## Key formulas & invariants
 
-- **Arrival date:** `startDate + (trailMile / paceMilesPerDay)` days. NOBO starts at
-  mile 0 (Springer Mtn, GA) heading to the northern terminus.
+- **Arrival date:** `startDate + floor(milesHiked / paceMilesPerDay)` days, where
+  `milesHiked` is `trailMile` for NOBO and `maxMile − trailMile` for SOBO
+  (trailMile always keeps its NOBO meaning: 0 = Springer Mtn, GA). Projections
+  are returned in hike order — reversed waypoint order for SOBO.
 - **Lapse correction:** `correctedF = stationF - LAPSE_RATE_PER_FT * (trailElevFt -
   stationElevFt)`. Default `LAPSE_RATE_PER_FT = 0.0035` (3.5°F / 1000 ft), configurable
   constant. Applies to both high and low.

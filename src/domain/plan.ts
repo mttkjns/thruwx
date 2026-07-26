@@ -52,13 +52,28 @@ export function planWarnings(
   if (plan.startDate < todayIso) {
     warnings.push("Start date is in the past.");
   }
-  // Baxter State Park typically closes Katahdin to hikers mid-October.
-  const finishYear = finishDate.slice(0, 4);
-  if (finishDate > `${finishYear}-10-15` || finishDate.slice(0, 4) !== plan.startDate.slice(0, 4)) {
-    warnings.push(
-      `This pace reaches Katahdin ${finishDate} — Baxter State Park usually closes ` +
-        "the summit to hikers around October 15.",
-    );
+  if (plan.direction === "NOBO") {
+    // Baxter State Park typically closes Katahdin to hikers mid-October.
+    const finishYear = finishDate.slice(0, 4);
+    if (
+      finishDate > `${finishYear}-10-15` ||
+      finishDate.slice(0, 4) !== plan.startDate.slice(0, 4)
+    ) {
+      warnings.push(
+        `This pace reaches Katahdin ${finishDate} — Baxter State Park usually closes ` +
+          "the summit to hikers around October 15.",
+      );
+    }
+  } else {
+    // SOBO starts AT Katahdin; Baxter's trails typically open in late May and
+    // snowpack lingers — most SOBOs start mid-June or later.
+    const startYear = plan.startDate.slice(0, 4);
+    if (plan.startDate < `${startYear}-05-25`) {
+      warnings.push(
+        "SOBO starts at Katahdin — Baxter State Park trails usually don't open " +
+          "until late May, and most southbounders start mid-June or later.",
+      );
+    }
   }
   if (plan.paceMilesPerDay > 30) {
     warnings.push(
@@ -105,8 +120,8 @@ export function validateTripPlan(input: unknown): PlanValidation {
   if (!isValidIsoDate(raw.startDate)) {
     errors.push("startDate must be a valid YYYY-MM-DD date.");
   }
-  if (raw.direction !== "NOBO") {
-    errors.push('direction must be "NOBO" (only NOBO is supported).');
+  if (raw.direction !== "NOBO" && raw.direction !== "SOBO") {
+    errors.push('direction must be "NOBO" or "SOBO".');
   }
   const pace = raw.paceMilesPerDay;
   if (typeof pace !== "number" || !Number.isFinite(pace) || pace <= 0 || pace > 60) {
@@ -210,7 +225,7 @@ export function validateTripPlan(input: unknown): PlanValidation {
       schemaVersion: PLAN_SCHEMA_VERSION,
       ...(typeof raw.name === "string" ? { name: raw.name } : {}),
       startDate: raw.startDate as string,
-      direction: "NOBO",
+      direction: raw.direction as TripPlan["direction"],
       paceMilesPerDay: pace as number,
       gear,
       swaps,
