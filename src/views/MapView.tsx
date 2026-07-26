@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { HikeChart } from "../components/HikeChart";
 import { LoadClimateCard } from "../components/LoadClimateCard";
 import { fmtDate, fmtTemp, tempColor } from "../components/format";
 import { useProjection, WAYPOINTS } from "../state/useProjection";
@@ -19,6 +21,9 @@ export default function MapView() {
   // Projection order is hike order (reversed for SOBO); markers are placed
   // geographically, so look up by id instead of pairing indexes.
   const projById = new Map(projection.waypoints.map((p) => [p.waypointId, p]));
+  // Set by the chart below (crosshair or data-table row); the matching map
+  // marker enlarges with an ink ring so table ↔ geography stay connected.
+  const [hoverId, setHoverId] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
@@ -42,14 +47,15 @@ export default function MapView() {
           {WAYPOINTS.map((w) => {
             const pw = projById.get(w.id)!;
             const weather = pw.weather;
+            const hovered = hoverId === w.id;
             return (
               <CircleMarker
                 key={w.id}
                 center={[w.lat, w.lng]}
-                radius={7}
+                radius={hovered ? 11 : 7}
                 pathOptions={{
-                  color: "#ffffff",
-                  weight: 1.5,
+                  color: hovered ? "#0b0b0b" : "#ffffff",
+                  weight: hovered ? 2.5 : 1.5,
                   fillColor: weather ? tempColor(weather.correctedMinF) : "#a3a3a3",
                   fillOpacity: 1,
                 }}
@@ -90,6 +96,8 @@ export default function MapView() {
         arrival date (blue = cold, red = warm). The dashed line connects waypoints
         for orientation — it is not the trail centerline.
       </p>
+
+      <HikeChart onHoverWaypoint={setHoverId} />
     </div>
   );
 }
