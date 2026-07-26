@@ -1,5 +1,7 @@
 import type { GearCategory, GearItem, SuggestedSwap } from "../domain/types";
+import { LoadClimateCard } from "../components/LoadClimateCard";
 import { fmtDate } from "../components/format";
+import { useClimateStore } from "../state/climateStore";
 import { usePlanStore } from "../state/planStore";
 import { useProjection, WAYPOINTS } from "../state/useProjection";
 
@@ -256,6 +258,7 @@ export function GearView() {
   const addGearItem = usePlanStore((s) => s.addGearItem);
   const addSwap = usePlanStore((s) => s.addSwap);
   const projection = useProjection();
+  const climateReady = useClimateStore((s) => s.status === "ready");
 
   return (
     <div className="space-y-6 pb-8">
@@ -289,7 +292,11 @@ export function GearView() {
           From your thresholds and the projected corrected lows. Advisory — accept,
           ignore, or place your own swap instead.
         </p>
-        {projection.suggestedSwaps.length === 0 ? (
+        {!climateReady ? (
+          <div className="mt-3">
+            <LoadClimateCard />
+          </div>
+        ) : projection.suggestedSwaps.length === 0 ? (
           <p className="mt-3 text-sm text-neutral-400">
             No suggestions — add a comfort threshold to a gear item.
           </p>

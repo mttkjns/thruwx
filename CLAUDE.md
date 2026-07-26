@@ -52,6 +52,8 @@ Runtime:     React SPA loads the two JSON files, does all math in-browser,
 - Tailwind CSS for styling
 - Zustand (with `persist` middleware → localStorage) for the plan state
 - **Leaflet.js** for mapping, with **OpenStreetMap** tiles (no key, free, static-friendly)
+  — **post-MVP only**: the shipped MVP has no map view; do not add Leaflet unless a map
+  feature is actually being built
 - `suncalc` for sunrise/sunset/day-length/moon-phase (computed, no API)
 - Vitest for unit tests
 - Build pipeline script in TypeScript, run with `tsx`/`node`

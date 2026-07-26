@@ -34,10 +34,14 @@ const weather = (correctedMinF: number): WaypointWeather => ({
   precipProbability: 0.3,
 });
 
-const proj = (waypointId: string, low: number | null): WaypointProjection => ({
+const proj = (
+  waypointId: string,
+  low: number | null,
+  dayOfHike: number,
+): WaypointProjection => ({
   waypointId,
   arrivalDate: "2026-04-01",
-  dayOfHike: 10,
+  dayOfHike,
   weather: low === null ? null : weather(low),
   sun: { sunrise: "", sunset: "", dayLengthHours: 12 },
   moon: { phase: 0.5, illumination: 1, phaseName: "full" },
@@ -63,7 +67,8 @@ const plan = (gear: GearItem[]): TripPlan => ({
 
 describe("suggestSwaps", () => {
   // NOBO arc: warm start → cold highlands (down-crossing) → hot mid-Atlantic
-  // (up-crossing) → cold northern mountains (second down-crossing).
+  // (up-crossing) → cold northern mountains (second down-crossing). Waypoints
+  // are spaced >SUSTAIN_DAYS apart so every crossing sustains.
   const waypoints = [
     wp("start", true), //   low 40  warm
     wp("townA", true), //   low 35  warm  ← add suggested here (last resupply before cold)
@@ -75,7 +80,7 @@ describe("suggestSwaps", () => {
     wp("townE", true), //   low 20  COLD
   ];
   const lows = [40, 35, 25, 28, 38, 45, 22, 20];
-  const projected = waypoints.map((w, i) => proj(w.id, lows[i]));
+  const projected = waypoints.map((w, i) => proj(w.id, lows[i], i * 10));
 
   it("suggests ADD at the last resupply before a downward crossing", () => {
     const swaps = suggestSwaps(plan([puffy]), projected, waypoints);
@@ -115,7 +120,7 @@ describe("suggestSwaps", () => {
 
   it("suggests nothing when it is cold from the very start (initial loadout, not a swap)", () => {
     const coldStart = [wp("start", true), wp("townA", true)];
-    const coldProj = [proj("start", 20), proj("townA", 25)];
+    const coldProj = [proj("start", 20, 0), proj("townA", 25, 10)];
     expect(suggestSwaps(plan([puffy]), coldProj, coldStart)).toEqual([]);
   });
 
@@ -123,7 +128,7 @@ describe("suggestSwaps", () => {
     // start warm → gap (no station) → cold town. Crossing detected at townB,
     // add at the last resupply with data before it.
     const wps = [wp("start", true), wp("gap", false), wp("townB", true)];
-    const projs = [proj("start", 40), proj("gap", null), proj("townB", 25)];
+    const projs = [proj("start", 40, 0), proj("gap", null, 5), proj("townB", 25, 10)];
     const swaps = suggestSwaps(plan([puffy]), projs, wps);
     expect(swaps).toHaveLength(1);
     expect(swaps[0]).toMatchObject({ action: "add", waypointId: "start" });
@@ -131,9 +136,76 @@ describe("suggestSwaps", () => {
 
   it("threshold is inclusive: a low exactly AT the threshold counts as cold", () => {
     const wps = [wp("a", true), wp("b", true)];
-    const projs = [proj("a", 31), proj("b", 30)];
+    const projs = [proj("a", 31, 0), proj("b", 30, 10)];
     const swaps = suggestSwaps(plan([puffy]), projs, wps);
     expect(swaps).toHaveLength(1);
     expect(swaps[0].action).toBe("add");
+  });
+
+  describe("flap guard (SUSTAIN_DAYS lag)", () => {
+    // Warm baseline, then lows oscillating around the threshold day-to-day —
+    // the southern-highlands pattern that used to emit add/remove chains.
+    const flapWps = [
+      wp("t0", true),
+      wp("t1", true),
+      wp("t2", true),
+      wp("t3", true),
+      wp("t4", true),
+      wp("t5", true),
+    ];
+
+    it("ignores a cold blip shorter than the sustain window", () => {
+      // cold at day 10 but warm again by day 13 → no crossing at all.
+      const projs = [
+        proj("t0", 40, 0),
+        proj("t1", 28, 10), // blip
+        proj("t2", 35, 13),
+        proj("t3", 36, 20),
+        proj("t4", 38, 30),
+        proj("t5", 40, 40),
+      ];
+      expect(suggestSwaps(plan([puffy]), projs, flapWps)).toEqual([]);
+    });
+
+    it("honors a flip that holds for the whole window", () => {
+      // cold from day 10 through day 18 (> 7 days) → one add, no flapping.
+      const projs = [
+        proj("t0", 40, 0),
+        proj("t1", 28, 10),
+        proj("t2", 25, 14),
+        proj("t3", 27, 18),
+        proj("t4", 20, 30),
+        proj("t5", 18, 40),
+      ];
+      const swaps = suggestSwaps(plan([puffy]), projs, flapWps);
+      expect(swaps).toHaveLength(1);
+      expect(swaps[0]).toMatchObject({
+        action: "add",
+        waypointId: "t0",
+        triggerWaypointId: "t1",
+      });
+    });
+
+    it("collapses an oscillating stretch into a single crossing pair", () => {
+      // cold → warm-blip → cold → sustained warm: expect exactly add + remove.
+      const projs = [
+        proj("t0", 40, 0),
+        proj("t1", 25, 10), // sustained cold begins (t2 within window agrees)
+        proj("t2", 28, 15),
+        proj("t3", 35, 17), // warm blip: t4 (cold, day 20) is inside its window
+        proj("t4", 26, 20),
+        proj("t5", 45, 30), // sustained warm (end of trail)
+      ];
+      const swaps = suggestSwaps(plan([puffy]), projs, flapWps);
+      expect(swaps.map((s) => s.action)).toEqual(["add", "remove"]);
+      expect(swaps[1].triggerWaypointId).toBe("t5");
+    });
+
+    it("end of trail defers to the final point itself", () => {
+      const projs = [proj("t0", 40, 0), proj("t1", 25, 10)];
+      const swaps = suggestSwaps(plan([puffy]), projs, flapWps.slice(0, 2));
+      expect(swaps).toHaveLength(1);
+      expect(swaps[0].action).toBe("add");
+    });
   });
 });

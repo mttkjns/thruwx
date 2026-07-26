@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { autoLoadClimateIfConsented } from "./state/climateStore";
 import { GearView } from "./views/GearView";
 import { TimelineView } from "./views/TimelineView";
 
@@ -6,6 +7,7 @@ type Tab = "timeline" | "gear";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("timeline");
+  useEffect(autoLoadClimateIfConsented, []);
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">

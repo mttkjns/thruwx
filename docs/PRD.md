@@ -95,6 +95,10 @@ gear-swap points to real towns and dates.
     at the last resupply town before the crossing.
   - An upward crossing (lows rising above threshold) → suggest **removing** it at the
     first resupply town after.
+- **Flap guard:** a crossing only counts if the new state holds for ≥7 projected
+  days (every weather-bearing waypoint in the window agrees). Southern-highland
+  normals hover at common thresholds for weeks; without the lag the walk emits
+  add/remove/add chains a hiker would never act on.
 - Suggestions render distinctly from user-placed swaps and never auto-apply.
 - Because a NOBO hiker's lows go down→up→down, expect items like insulation to be
   suggested for removal in the mid-Atlantic summer and re-addition before the northern

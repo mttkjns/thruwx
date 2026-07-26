@@ -1,3 +1,4 @@
+import { LoadClimateCard } from "../components/LoadClimateCard";
 import { TripSetup } from "../components/TripSetup";
 import { WelcomeBanner } from "../components/WelcomeBanner";
 import { WaypointRow } from "../components/WaypointRow";
@@ -14,6 +15,7 @@ export function TimelineView() {
     <div className="space-y-4">
       <WelcomeBanner />
       <TripSetup />
+      <LoadClimateCard />
 
       <p className="px-1 text-sm text-neutral-600">
         Start <span className="font-medium text-neutral-900">{fmtDate(plan.startDate)}</span>{" "}

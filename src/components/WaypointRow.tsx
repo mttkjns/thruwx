@@ -1,4 +1,5 @@
 import type { Waypoint, WaypointProjection } from "../domain/types";
+import { useClimateStore } from "../state/climateStore";
 import {
   fmtDate,
   fmtDayLength,
@@ -21,6 +22,7 @@ export function WaypointRow({
   projection: WaypointProjection;
 }) {
   const w = projection.weather;
+  const climateReady = useClimateStore((s) => s.status === "ready");
   return (
     <li className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -90,7 +92,9 @@ export function WaypointRow({
         </div>
       ) : (
         <p className="mt-3 text-sm text-neutral-400">
-          No climate station assigned — weather unavailable here.
+          {climateReady
+            ? "No climate station assigned — weather unavailable here."
+            : "Awaiting climate data."}
         </p>
       )}
     </li>
