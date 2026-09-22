@@ -1,0 +1,6 @@
+# Deploys are built and tested by Gitea Actions (.gitea/workflows/deploy.yml)
+# and uploaded with `netlify deploy --no-build`; Netlify never builds.
+# This file only tells a manual `netlify deploy` where the output lives.
+# Response headers live in public/_headers.
+[build]
+  publish = "dist"
