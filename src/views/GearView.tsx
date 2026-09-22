@@ -17,8 +17,17 @@ const CATEGORIES: GearCategory[] = [
 ];
 
 const RESUPPLY_WAYPOINTS = WAYPOINTS.filter((w) => w.isResupply);
-const waypointName = (id: string) =>
-  WAYPOINTS.find((w) => w.id === id)?.name ?? id;
+const WAYPOINT_BY_ID = new Map(WAYPOINTS.map((w) => [w.id, w]));
+const waypointName = (id: string) => WAYPOINT_BY_ID.get(id)?.name ?? id;
+
+/** Resupply towns inside the plan's section, in hike order (all of them if the section has none). */
+function useSectionResupply() {
+  const projection = useProjection();
+  const inSection = projection.waypoints
+    .map((pw) => WAYPOINT_BY_ID.get(pw.waypointId)!)
+    .filter((w) => w.isResupply);
+  return inSection.length > 0 ? inSection : RESUPPLY_WAYPOINTS;
+}
 
 /* ------------------------------------------------------------------ */
 /* Gear items                                                          */
@@ -86,6 +95,12 @@ function SwapCard({ swapId }: { swapId: string }) {
   const gear = usePlanStore((s) => s.plan.gear);
   const updateSwap = usePlanStore((s) => s.updateSwap);
   const removeSwap = usePlanStore((s) => s.removeSwap);
+  const sectionResupply = useSectionResupply();
+  // A swap placed before the section changed may sit outside it; keep it
+  // selectable (and labeled) rather than silently moving it.
+  const current = WAYPOINT_BY_ID.get(swap.waypointId);
+  const outside = current !== undefined && !sectionResupply.some((w) => w.id === current.id);
+  const options = outside ? [...sectionResupply, current] : sectionResupply;
 
   function setMembership(itemId: string, list: "add" | "remove" | "none") {
     updateSwap(swap.id, {
@@ -109,9 +124,10 @@ function SwapCard({ swapId }: { swapId: string }) {
           value={swap.waypointId}
           onChange={(e) => updateSwap(swap.id, { waypointId: e.target.value })}
         >
-          {RESUPPLY_WAYPOINTS.map((w) => (
+          {options.map((w) => (
             <option key={w.id} value={w.id}>
               {w.name} (mi {w.trailMile.toFixed(0)})
+              {outside && w.id === current.id ? " — outside your section" : ""}
             </option>
           ))}
         </select>
@@ -259,6 +275,7 @@ export function GearView() {
   const addGearItem = usePlanStore((s) => s.addGearItem);
   const addSwap = usePlanStore((s) => s.addSwap);
   const projection = useProjection();
+  const sectionResupply = useSectionResupply();
   const climateReady = useClimateStore((s) => s.status === "ready");
 
   return (
@@ -323,7 +340,7 @@ export function GearView() {
             className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50"
             onClick={() =>
               addSwap({
-                waypointId: RESUPPLY_WAYPOINTS[0].id,
+                waypointId: sectionResupply[0].id,
                 addItemIds: [],
                 removeItemIds: [],
               })
@@ -335,7 +352,7 @@ export function GearView() {
         {swaps.length === 0 ? (
           <p className="mt-3 text-sm text-neutral-400">
             No swaps yet. Accept a suggestion or add one at a resupply town —
-            e.g. {waypointName(RESUPPLY_WAYPOINTS[0].id)}.
+            e.g. {waypointName(sectionResupply[0].id)}.
           </p>
         ) : (
           <ul className="mt-3 space-y-2">

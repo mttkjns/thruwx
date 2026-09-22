@@ -2,6 +2,7 @@
  * Position-over-time projection — the engine everything else hangs off.
  */
 import { addDays } from "./dates";
+import { hikeSection } from "./section";
 import type { IsoDate, TripPlan, Waypoint, WaypointId } from "./types";
 
 export interface ScheduleEntry {
@@ -12,9 +13,10 @@ export interface ScheduleEntry {
 }
 
 /**
- * Arrival date per waypoint, returned in HIKE order (NOBO: ascending trail
- * mile; SOBO: descending — the hike starts at Katahdin and trailMile keeps
- * its NOBO meaning, so miles hiked = maxMile − trailMile).
+ * Arrival date per waypoint in the plan's section (see hikeSection), returned
+ * in HIKE order (NOBO: ascending trail mile; SOBO: descending — trailMile
+ * keeps its NOBO meaning, so miles hiked = |trailMile − startMile|; for a
+ * full SOBO hike that is maxMile − trailMile).
  *
  * dayOfHike = floor(milesHiked / paceMilesPerDay). Floor, not round —
  * reaching mile 31.7 at 15 mi/day happens during day 2 (0-based), even
@@ -24,13 +26,14 @@ export function projectSchedule(plan: TripPlan, waypoints: Waypoint[]): Schedule
   if (!(plan.paceMilesPerDay > 0)) {
     throw new Error(`paceMilesPerDay must be positive, got ${plan.paceMilesPerDay}`);
   }
-  const sobo = plan.direction === "SOBO";
-  const maxMile = Math.max(...waypoints.map((w) => w.trailMile));
-  const ordered = [...waypoints].sort((a, b) =>
-    sobo ? b.trailMile - a.trailMile : a.trailMile - b.trailMile,
-  );
-  return ordered.map((wp) => {
-    const milesHiked = sobo ? maxMile - wp.trailMile : wp.trailMile;
+  const section = hikeSection(plan, waypoints);
+  // A chosen start waypoint is day 0. Without one, a NOBO hike starts at
+  // Springer (mile 0 by definition) and a SOBO hike at the highest mile,
+  // which is where hikeSection already begins.
+  const chosenStart = section[0].id === plan.startWaypointId;
+  const startMile = chosenStart || plan.direction === "SOBO" ? section[0].trailMile : 0;
+  return section.map((wp) => {
+    const milesHiked = Math.abs(wp.trailMile - startMile);
     const dayOfHike = Math.floor(milesHiked / plan.paceMilesPerDay);
     return {
       waypointId: wp.id,

@@ -169,6 +169,13 @@ export interface TripPlan {
   name?: string;
   startDate: IsoDate;
   direction: HikeDirection;
+  /**
+   * Optional section endpoints. Absent (or unknown) = the trail terminus for
+   * this direction: Springer→Katahdin for NOBO, Katahdin→Springer for SOBO.
+   * End must lie beyond start in the hike direction; see hikeSection().
+   */
+  startWaypointId?: WaypointId;
+  endWaypointId?: WaypointId;
   /** Average pace; single value for MVP. Per-section pace is post-MVP. */
   paceMilesPerDay: number;
   gear: GearItem[];

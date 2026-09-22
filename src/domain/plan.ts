@@ -2,7 +2,8 @@
  * TripPlan construction and validation — pure functions, used by the store's
  * import path and by first-run initialization.
  */
-import type { GearCategory, TripPlan } from "./types";
+import { hikeSection } from "./section";
+import type { GearCategory, TripPlan, Waypoint } from "./types";
 
 /** Bump when TripPlan's persisted shape changes; migrate on import/rehydrate. */
 export const PLAN_SCHEMA_VERSION = 1;
@@ -40,19 +41,34 @@ export function createDefaultPlan(today: Date = new Date()): TripPlan {
  * Non-blocking sanity warnings for the current plan + projection. These never
  * prevent input (the tool should let people explore); they flag plans that
  * collide with reality.
+ *
+ * The Baxter State Park warnings only apply when the hike touches Katahdin
+ * (the highest-mile waypoint): a NOBO section that ends there or a SOBO
+ * section that starts there. Without `waypoints`, the plan is treated as a
+ * full thru-hike.
  */
 export function planWarnings(
   plan: TripPlan,
   finishDate: string,
   today: Date = new Date(),
+  waypoints?: Waypoint[],
 ): string[] {
   const warnings: string[] = [];
   const todayIso = today.toISOString().slice(0, 10);
 
+  let startsAtKatahdin = true;
+  let endsAtKatahdin = true;
+  if (waypoints && waypoints.length > 0) {
+    const katahdin = waypoints.reduce((a, b) => (b.trailMile > a.trailMile ? b : a));
+    const section = hikeSection(plan, waypoints);
+    startsAtKatahdin = section[0].id === katahdin.id;
+    endsAtKatahdin = section[section.length - 1].id === katahdin.id;
+  }
+
   if (plan.startDate < todayIso) {
     warnings.push("Start date is in the past.");
   }
-  if (plan.direction === "NOBO") {
+  if (plan.direction === "NOBO" && endsAtKatahdin) {
     // Baxter State Park typically closes Katahdin to hikers mid-October.
     const finishYear = finishDate.slice(0, 4);
     if (
@@ -64,7 +80,7 @@ export function planWarnings(
           "the summit to hikers around October 15.",
       );
     }
-  } else {
+  } else if (plan.direction === "SOBO" && startsAtKatahdin) {
     // SOBO starts AT Katahdin; Baxter's trails typically open in late May and
     // snowpack lingers — most SOBOs start mid-June or later.
     const startYear = plan.startDate.slice(0, 4);
@@ -129,6 +145,11 @@ export function validateTripPlan(input: unknown): PlanValidation {
   }
   if (raw.name !== undefined && typeof raw.name !== "string") {
     errors.push("name must be a string when present.");
+  }
+  for (const key of ["startWaypointId", "endWaypointId"] as const) {
+    if (raw[key] !== undefined && (typeof raw[key] !== "string" || raw[key] === "")) {
+      errors.push(`${key} must be a non-empty string when present.`);
+    }
   }
 
   const gear: TripPlan["gear"] = [];
@@ -226,6 +247,8 @@ export function validateTripPlan(input: unknown): PlanValidation {
       ...(typeof raw.name === "string" ? { name: raw.name } : {}),
       startDate: raw.startDate as string,
       direction: raw.direction as TripPlan["direction"],
+      ...(typeof raw.startWaypointId === "string" ? { startWaypointId: raw.startWaypointId } : {}),
+      ...(typeof raw.endWaypointId === "string" ? { endWaypointId: raw.endWaypointId } : {}),
       paceMilesPerDay: pace as number,
       gear,
       swaps,

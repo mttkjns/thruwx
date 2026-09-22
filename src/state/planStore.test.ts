@@ -18,6 +18,22 @@ describe("planStore actions", () => {
     expect(store().plan.paceMilesPerDay).toBe(18);
   });
 
+  it("sets and clears section endpoints", () => {
+    store().setSection("harpers-ferry-wv", undefined);
+    expect(store().plan.startWaypointId).toBe("harpers-ferry-wv");
+    expect("endWaypointId" in store().plan).toBe(false);
+    store().setSection(undefined, undefined);
+    expect("startWaypointId" in store().plan).toBe(false);
+  });
+
+  it("flipping direction swaps the section endpoints", () => {
+    store().setSection("harpers-ferry-wv", undefined);
+    store().setDirection("SOBO");
+    expect(store().plan.direction).toBe("SOBO");
+    expect("startWaypointId" in store().plan).toBe(false);
+    expect(store().plan.endWaypointId).toBe("harpers-ferry-wv");
+  });
+
   it("adds, updates, and removes gear items", () => {
     const id = store().addGearItem({ name: "Puffy", category: "insulation" });
     expect(store().plan.gear).toHaveLength(1);
