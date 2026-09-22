@@ -1,0 +1,46 @@
+# Test, build, and deploy to Netlify.
+#   push to main   → production (thruwx.com)
+#   pull request   → preview at https://pr-<number>--<site>.netlify.app
+#
+# Needs two repo secrets (Settings → Actions → Secrets):
+#   NETLIFY_AUTH_TOKEN  personal access token from Netlify user settings
+#   NETLIFY_SITE_ID     the site's Project ID (Site configuration → General)
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      # playwright is a devDependency; CI never needs its browsers.
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: Deploy preview
+        if: github.event_name == 'pull_request'
+        run: >
+          npx --yes netlify-cli@27 deploy --no-build --dir=dist
+          --alias=pr-${{ github.event.pull_request.number }}
+          --message="PR #${{ github.event.pull_request.number }}"
+
+      - name: Deploy production
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: >
+          npx --yes netlify-cli@27 deploy --no-build --dir=dist --prod
+          --message="${{ github.sha }}"
