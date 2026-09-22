@@ -7,7 +7,8 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createDefaultPlan, PLAN_SCHEMA_VERSION, validateTripPlan } from "../domain/plan";
-import type { GearItem, GearSwap, HikeDirection, TripPlan } from "../domain/types";
+import { sameSuggestion } from "../domain/swaps";
+import type { GearItem, GearSwap, HikeDirection, IgnoredSuggestion, TripPlan } from "../domain/types";
 import { newId } from "./ids";
 
 interface PlanState {
@@ -21,11 +22,16 @@ interface PlanState {
   setPlanName: (name: string | undefined) => void;
   addGearItem: (item: Omit<GearItem, "id">) => string;
   updateGearItem: (id: string, patch: Partial<Omit<GearItem, "id">>) => void;
-  /** Also strips the item from every swap's add/remove lists. */
+  /** Also strips the item from every swap's add/remove lists and from ignored suggestions. */
   removeGearItem: (id: string) => void;
   addSwap: (swap: Omit<GearSwap, "id">) => string;
   updateSwap: (id: string, patch: Partial<Omit<GearSwap, "id">>) => void;
   removeSwap: (id: string) => void;
+  ignoreSuggestion: (suggestion: IgnoredSuggestion) => void;
+  /** Also un-hides: the suggestion goes back to a normal, actionable row. */
+  unignoreSuggestion: (suggestion: IgnoredSuggestion) => void;
+  /** Remove an ignored suggestion from the list (ignores it first if needed). */
+  hideSuggestion: (suggestion: IgnoredSuggestion) => void;
   /** Validated import; returns errors instead of loading anything invalid. */
   importPlan: (input: unknown) => { ok: true } | { ok: false; errors: string[] };
   resetPlan: () => void;
@@ -103,6 +109,9 @@ export const usePlanStore = create<PlanState>()(
               addItemIds: sw.addItemIds.filter((x) => x !== id),
               removeItemIds: sw.removeItemIds.filter((x) => x !== id),
             })),
+            ...(s.plan.ignoredSuggestions
+              ? { ignoredSuggestions: s.plan.ignoredSuggestions.filter((ig) => ig.itemId !== id) }
+              : {}),
           },
         })),
 
@@ -124,6 +133,31 @@ export const usePlanStore = create<PlanState>()(
         set((s) => ({
           plan: { ...s.plan, swaps: s.plan.swaps.filter((sw) => sw.id !== id) },
         })),
+
+      ignoreSuggestion: ({ itemId, action, waypointId }) =>
+        set((s) => {
+          const current = s.plan.ignoredSuggestions ?? [];
+          const entry = { itemId, action, waypointId };
+          if (current.some((ig) => sameSuggestion(ig, entry))) return s;
+          return { plan: { ...s.plan, ignoredSuggestions: [...current, entry] } };
+        }),
+
+      unignoreSuggestion: (suggestion) =>
+        set((s) => ({
+          plan: {
+            ...s.plan,
+            ignoredSuggestions: (s.plan.ignoredSuggestions ?? []).filter(
+              (ig) => !sameSuggestion(ig, suggestion),
+            ),
+          },
+        })),
+
+      hideSuggestion: ({ itemId, action, waypointId }) =>
+        set((s) => {
+          const entry = { itemId, action, waypointId, hidden: true };
+          const rest = (s.plan.ignoredSuggestions ?? []).filter((ig) => !sameSuggestion(ig, entry));
+          return { plan: { ...s.plan, ignoredSuggestions: [...rest, entry] } };
+        }),
 
       importPlan: (input) => {
         const result = validateTripPlan(input);

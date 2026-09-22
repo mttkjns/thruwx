@@ -34,6 +34,36 @@ describe("planStore actions", () => {
     expect(store().plan.endWaypointId).toBe("harpers-ferry-wv");
   });
 
+  it("ignores and un-ignores a suggestion; removing the item clears it", () => {
+    const itemId = store().addGearItem({ name: "Puffy", category: "insulation" });
+    const sug = { itemId, action: "add" as const, waypointId: "damascus-va" };
+    store().ignoreSuggestion(sug);
+    store().ignoreSuggestion(sug); // idempotent
+    expect(store().plan.ignoredSuggestions).toEqual([sug]);
+
+    store().unignoreSuggestion(sug);
+    expect(store().plan.ignoredSuggestions).toEqual([]);
+
+    store().ignoreSuggestion(sug);
+    store().removeGearItem(itemId);
+    expect(store().plan.ignoredSuggestions).toEqual([]);
+  });
+
+  it("hides an ignored suggestion and restores it", () => {
+    const itemId = store().addGearItem({ name: "Puffy", category: "insulation" });
+    const sug = { itemId, action: "remove" as const, waypointId: "hanover-nh" };
+    store().ignoreSuggestion(sug);
+    store().hideSuggestion(sug);
+    expect(store().plan.ignoredSuggestions).toEqual([{ ...sug, hidden: true }]);
+
+    // Ignoring again doesn't un-hide it.
+    store().ignoreSuggestion(sug);
+    expect(store().plan.ignoredSuggestions).toEqual([{ ...sug, hidden: true }]);
+
+    store().unignoreSuggestion(sug);
+    expect(store().plan.ignoredSuggestions).toEqual([]);
+  });
+
   it("adds, updates, and removes gear items", () => {
     const id = store().addGearItem({ name: "Puffy", category: "insulation" });
     expect(store().plan.gear).toHaveLength(1);

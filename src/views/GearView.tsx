@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { isSuggestionHidden, isSuggestionIgnored } from "../domain/swaps";
 import type { GearCategory, GearItem, SuggestedSwap } from "../domain/types";
 import { LoadClimateCard } from "../components/LoadClimateCard";
 import { PlanSummary } from "../components/PlanSummary";
@@ -196,10 +198,16 @@ function SwapCard({ swapId }: { swapId: string }) {
 /* ------------------------------------------------------------------ */
 
 function SuggestionRow({ suggestion }: { suggestion: SuggestedSwap }) {
-  const swaps = usePlanStore((s) => s.plan.swaps);
+  const plan = usePlanStore((s) => s.plan);
+  const swaps = plan.swaps;
   const addSwap = usePlanStore((s) => s.addSwap);
   const updateSwap = usePlanStore((s) => s.updateSwap);
+  const ignoreSuggestion = usePlanStore((s) => s.ignoreSuggestion);
+  const unignoreSuggestion = usePlanStore((s) => s.unignoreSuggestion);
+  const hideSuggestion = usePlanStore((s) => s.hideSuggestion);
   const projection = useProjection();
+  const ignored = isSuggestionIgnored(plan, suggestion);
+  const hidden = isSuggestionHidden(plan, suggestion);
 
   const arrival = projection.waypoints.find(
     (w) => w.waypointId === suggestion.waypointId,
@@ -232,7 +240,11 @@ function SuggestionRow({ suggestion }: { suggestion: SuggestedSwap }) {
   }
 
   return (
-    <li className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-amber-300 bg-amber-50 p-3 text-sm">
+    <li
+      className={`flex flex-wrap items-center gap-2 rounded-lg border border-dashed p-3 text-sm ${
+        ignored ? "border-neutral-300 bg-neutral-50 opacity-60" : "border-amber-300 bg-amber-50"
+      }`}
+    >
       <span
         className={`rounded px-1.5 py-0.5 text-xs font-medium ${
           suggestion.action === "add"
@@ -248,18 +260,56 @@ function SuggestionRow({ suggestion }: { suggestion: SuggestedSwap }) {
       </span>
       {planned ? (
         <span className="text-xs font-medium text-emerald-700">✓ in your swaps</span>
+      ) : hidden ? (
+        <>
+          <span className="text-xs font-medium text-neutral-500">Removed</span>
+          <button
+            type="button"
+            className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+            onClick={() => unignoreSuggestion(suggestion)}
+          >
+            Restore
+          </button>
+        </>
+      ) : ignored ? (
+        <>
+          <span className="text-xs font-medium text-neutral-500">Ignored</span>
+          <button
+            type="button"
+            className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+            onClick={() => unignoreSuggestion(suggestion)}
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            className="rounded-md px-2.5 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+            onClick={() => hideSuggestion(suggestion)}
+          >
+            Remove
+          </button>
+        </>
       ) : override ? (
         <span className="text-xs font-medium text-neutral-500">
           ↷ planned at {waypointName(override.waypointId)} instead
         </span>
       ) : (
-        <button
-          type="button"
-          className="rounded-md border border-amber-400 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
-          onClick={accept}
-        >
-          Accept
-        </button>
+        <>
+          <button
+            type="button"
+            className="rounded-md border border-amber-400 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+            onClick={accept}
+          >
+            Accept
+          </button>
+          <button
+            type="button"
+            className="rounded-md px-2.5 py-1 text-xs font-medium text-neutral-600 hover:bg-amber-100"
+            onClick={() => ignoreSuggestion(suggestion)}
+          >
+            Ignore
+          </button>
+        </>
       )}
     </li>
   );
@@ -277,6 +327,13 @@ export function GearView() {
   const projection = useProjection();
   const sectionResupply = useSectionResupply();
   const climateReady = useClimateStore((s) => s.status === "ready");
+  const plan = usePlanStore((s) => s.plan);
+  // Removed suggestions stay restorable; this toggle is view state only.
+  const [showRemoved, setShowRemoved] = useState(false);
+  const removedCount = projection.suggestedSwaps.filter((s) => isSuggestionHidden(plan, s)).length;
+  const visibleSuggestions = projection.suggestedSwaps.filter(
+    (s) => showRemoved || !isSuggestionHidden(plan, s),
+  );
 
   return (
     <div className="space-y-6 pb-8">
@@ -311,6 +368,18 @@ export function GearView() {
         <p className="mt-1 text-sm text-neutral-500">
           From your thresholds and the projected corrected lows. Advisory — accept,
           ignore, or place your own swap instead.
+          {removedCount > 0 && (
+            <>
+              {" "}
+              <button
+                type="button"
+                className="text-neutral-600 underline hover:text-neutral-900"
+                onClick={() => setShowRemoved(!showRemoved)}
+              >
+                {showRemoved ? "Hide removed" : `Show ${removedCount} removed`}
+              </button>
+            </>
+          )}
         </p>
         {!climateReady ? (
           <div className="mt-3">
@@ -320,9 +389,11 @@ export function GearView() {
           <p className="mt-3 text-sm text-neutral-400">
             No suggestions — add a comfort threshold to a gear item.
           </p>
+        ) : visibleSuggestions.length === 0 ? (
+          <p className="mt-3 text-sm text-neutral-400">All suggestions removed.</p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {projection.suggestedSwaps.map((s, i) => (
+            {visibleSuggestions.map((s, i) => (
               <SuggestionRow
                 key={`${s.itemId}-${s.action}-${s.triggerWaypointId}-${i}`}
                 suggestion={s}

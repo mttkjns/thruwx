@@ -67,9 +67,11 @@ Runtime:     React SPA loads the two JSON files, does all math in-browser,
 - **DailyNormal** — per station, per day-of-year (1–366): `{ normalMaxF, normalMinF,
   normalPrecipIn, freezeProbability, precipProbability }`.
 - **TripPlan** (user state, persisted) — `{ startDate, direction, startWaypointId?,
-  endWaypointId?, paceMilesPerDay, gear: GearItem[], swaps: GearSwap[] }`. The optional
-  waypoint ids pick a section; absent = the trail terminus for that direction.
-  Direction is `"NOBO" | "SOBO"` (flip-flop is post-MVP).
+  endWaypointId?, paceMilesPerDay, gear: GearItem[], swaps: GearSwap[],
+  ignoredSuggestions? }`. The optional waypoint ids pick a section; absent = the
+  trail terminus for that direction. Direction is `"NOBO" | "SOBO"` (flip-flop is
+  post-MVP). `ignoredSuggestions` holds dismissed swap suggestions as
+  `{ itemId, action, waypointId, hidden? }` (hidden = removed from the list).
 - **GearItem** — `{ id, name, category, comfortThresholdF?, notes? }`. The threshold
   is **optional**: if present, the app can *suggest* swap points; if absent, the item
   is managed purely manually.
