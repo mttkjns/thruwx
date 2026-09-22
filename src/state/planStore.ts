@@ -14,7 +14,10 @@ interface PlanState {
   plan: TripPlan;
   setStartDate: (startDate: string) => void;
   setPace: (paceMilesPerDay: number) => void;
+  /** Flipping direction also swaps the section endpoints, so the same stretch is hiked the other way. */
   setDirection: (direction: HikeDirection) => void;
+  /** Section endpoints; undefined = the trail terminus for the current direction. */
+  setSection: (startWaypointId: string | undefined, endWaypointId: string | undefined) => void;
   setPlanName: (name: string | undefined) => void;
   addGearItem: (item: Omit<GearItem, "id">) => string;
   updateGearItem: (id: string, patch: Partial<Omit<GearItem, "id">>) => void;
@@ -48,7 +51,31 @@ export const usePlanStore = create<PlanState>()(
       setPace: (paceMilesPerDay) =>
         set((s) => ({ plan: { ...s.plan, paceMilesPerDay } })),
 
-      setDirection: (direction) => set((s) => ({ plan: { ...s.plan, direction } })),
+      setDirection: (direction) =>
+        set((s) => {
+          if (direction === s.plan.direction) return s;
+          const { startWaypointId, endWaypointId, ...rest } = s.plan;
+          return {
+            plan: {
+              ...rest,
+              direction,
+              ...(endWaypointId !== undefined ? { startWaypointId: endWaypointId } : {}),
+              ...(startWaypointId !== undefined ? { endWaypointId: startWaypointId } : {}),
+            },
+          };
+        }),
+
+      setSection: (startWaypointId, endWaypointId) =>
+        set((s) => {
+          const { startWaypointId: _s, endWaypointId: _e, ...rest } = s.plan;
+          return {
+            plan: {
+              ...rest,
+              ...(startWaypointId !== undefined ? { startWaypointId } : {}),
+              ...(endWaypointId !== undefined ? { endWaypointId } : {}),
+            },
+          };
+        }),
 
       setPlanName: (name) => set((s) => ({ plan: { ...s.plan, name } })),
 

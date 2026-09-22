@@ -10,8 +10,9 @@ import { useProjection, WAYPOINTS } from "../state/useProjection";
 const POSITIONS = WAYPOINTS.map((w) => [w.lat, w.lng] as [number, number]);
 
 /**
- * Map view: every waypoint as a marker colored by its corrected low on the
- * projected arrival date — the seasonal arc drawn in space instead of down a
+ * Map view: every waypoint in the planned section as a marker colored by its
+ * corrected low on the projected arrival date (waypoints outside the section
+ * stay as small muted markers) — the seasonal arc drawn in space instead of down a
  * page. The dashed connector is waypoint-to-waypoint, NOT the trail
  * centerline (CLAUDE.md: we deliberately don't ship the full GPS track).
  *
@@ -49,7 +50,27 @@ export default function MapView() {
             pathOptions={{ color: "#525252", weight: 2, dashArray: "4 6", opacity: 0.7 }}
           />
           {WAYPOINTS.map((w) => {
-            const pw = projById.get(w.id)!;
+            const pw = projById.get(w.id);
+            // Outside the planned section: a small muted marker, no projection.
+            if (!pw) {
+              return (
+                <CircleMarker
+                  key={w.id}
+                  center={[w.lat, w.lng]}
+                  radius={4}
+                  pathOptions={{ color: "#ffffff", weight: 1, fillColor: "#d4d4d4", fillOpacity: 1 }}
+                >
+                  <Popup>
+                    <div className="text-sm">
+                      <p className="font-semibold">
+                        {w.name} <span className="font-normal text-neutral-500">{w.state}</span>
+                      </p>
+                      <p className="mt-0.5 text-neutral-500">mi {w.trailMile.toFixed(0)} · outside your section</p>
+                    </div>
+                  </Popup>
+                </CircleMarker>
+              );
+            }
             const weather = pw.weather;
             const hovered = hoverId === w.id;
             return (

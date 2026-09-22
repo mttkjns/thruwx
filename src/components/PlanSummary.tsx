@@ -12,13 +12,15 @@ export function PlanSummary() {
   const plan = usePlanStore((s) => s.plan);
   const projection = useProjection();
 
+  const first = projection.waypoints[0];
   const last = projection.waypoints[projection.waypoints.length - 1];
+  const origin = NAME_BY_ID.get(first.waypointId) ?? "the trailhead";
   const destination = NAME_BY_ID.get(last.waypointId) ?? "the far terminus";
 
   return (
     <p className="px-1 text-sm text-neutral-600">
       Start{" "}
-      <span className="font-medium text-neutral-900">{fmtDate(plan.startDate)}</span> at{" "}
+      <span className="font-medium text-neutral-900">{fmtDate(plan.startDate)}</span> at {origin},{" "}
       {plan.paceMilesPerDay} mi/day {plan.direction} → reach {destination}{" "}
       <span className="font-medium text-neutral-900">{fmtDate(projection.finishDate)}</span>{" "}
       (day {projection.totalDays}, {fmtApproxMonths(projection.totalDays)}).

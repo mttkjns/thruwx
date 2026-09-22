@@ -80,6 +80,29 @@ describe("planWarnings", () => {
     const sobo: TripPlan = { ...valid, direction: "SOBO", startDate: "2027-06-15" };
     expect(planWarnings(sobo, "2027-11-01", today)).toEqual([]);
   });
+
+  describe("section hikes", () => {
+    const at = (id: string, trailMile: number) =>
+      ({ id, name: id, state: "GA", trailMile, lat: 0, lng: 0, trailElevationFt: 0,
+         isResupply: true, stationId: null, stationElevationFt: null });
+    const trail = [at("springer", 0), at("harpers", 1025), at("katahdin", 2197.4)];
+
+    it("NOBO: no Baxter warning when the section ends short of Katahdin", () => {
+      const p: TripPlan = { ...planAt("2027-05-01", 10), endWaypointId: "harpers" };
+      expect(planWarnings(p, "2027-12-08", today, trail)).toEqual([]);
+    });
+
+    it("NOBO: still warns when the section ends at Katahdin", () => {
+      const p: TripPlan = { ...planAt("2027-05-01", 10), startWaypointId: "harpers" };
+      const w = planWarnings(p, "2027-12-08", today, trail);
+      expect(w.some((x) => x.includes("Baxter"))).toBe(true);
+    });
+
+    it("SOBO: no early-start warning when the section starts south of Katahdin", () => {
+      const p: TripPlan = { ...valid, direction: "SOBO", startDate: "2027-04-01", startWaypointId: "harpers" };
+      expect(planWarnings(p, "2027-06-10", today, trail)).toEqual([]);
+    });
+  });
 });
 
 describe("isValidIsoDate", () => {
@@ -101,6 +124,14 @@ describe("validateTripPlan", () => {
       expect(result.plan.gear[0].comfortThresholdF).toBe(30);
       expect(result.plan.swaps[0].removeItemIds).toEqual(["puffy"]);
     }
+  });
+
+  it("keeps section endpoints and rejects malformed ones", () => {
+    const withSection = validateTripPlan({ ...valid, startWaypointId: "harpers", endWaypointId: "katahdin" });
+    expect(withSection.ok && withSection.plan.startWaypointId).toBe("harpers");
+    expect(withSection.ok && withSection.plan.endWaypointId).toBe("katahdin");
+    expect(validateTripPlan({ ...valid, startWaypointId: 7 }).ok).toBe(false);
+    expect(validateTripPlan({ ...valid, endWaypointId: "" }).ok).toBe(false);
   });
 
   it("rejects non-objects", () => {

@@ -94,3 +94,28 @@ describe("projectSchedule", () => {
     });
   });
 });
+
+describe("projectSchedule — section hikes", () => {
+  const trail = [wp("springer", 0), wp("hot-springs", 274.9), wp("harpers", 1025), wp("katahdin", 2197.4)];
+
+  it("NOBO: day 0 at the start waypoint, miles counted from it", () => {
+    const entries = projectSchedule(
+      { ...plan("2027-05-01", 15), startWaypointId: "hot-springs", endWaypointId: "harpers" },
+      trail,
+    );
+    expect(entries.map((e) => e.waypointId)).toEqual(["hot-springs", "harpers"]);
+    expect(entries[0]).toEqual({ waypointId: "hot-springs", arrivalDate: "2027-05-01", dayOfHike: 0 });
+    // (1025 − 274.9) / 15 = 50.0 → day 50
+    expect(entries[1].dayOfHike).toBe(50);
+  });
+
+  it("SOBO: counts miles back down from the start waypoint", () => {
+    const entries = projectSchedule(
+      { ...plan("2027-07-01", 16, "SOBO"), startWaypointId: "harpers" },
+      trail,
+    );
+    expect(entries.map((e) => e.waypointId)).toEqual(["harpers", "hot-springs", "springer"]);
+    // (1025 − 274.9) / 16 = 46.9 → day 46; 1025 / 16 = 64.06 → day 64
+    expect(entries.map((e) => e.dayOfHike)).toEqual([0, 46, 64]);
+  });
+});
