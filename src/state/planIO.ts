@@ -30,11 +30,16 @@ export function planFileName(plan: TripPlan): string {
 
 /** Trigger a browser download of the plan. Browser-only. */
 export function downloadPlan(plan: TripPlan): void {
-  const blob = new Blob([serializePlan(plan)], { type: "application/json" });
+  downloadText(serializePlan(plan), planFileName(plan), "application/json");
+}
+
+/** Trigger a browser download of arbitrary text. Browser-only. */
+export function downloadText(text: string, fileName: string, mimeType: string): void {
+  const blob = new Blob([text], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = planFileName(plan);
+  a.download = fileName;
   a.click();
   URL.revokeObjectURL(url);
 }

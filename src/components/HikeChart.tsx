@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from "react";
 import { fullMoonDates } from "../domain/moon";
 import { addDays } from "../domain/dates";
 import { usePlanStore } from "../state/planStore";
+import { downloadText } from "../state/planIO";
+import { tableCsvFileName, tableToCsv } from "../state/tableCsv";
 import { useProjection, WAYPOINTS } from "../state/useProjection";
 import { fmtDate } from "./format";
 
@@ -40,12 +42,14 @@ const PANEL_TITLE_H = 26;
 const X_AXIS_H = 28;
 
 const NAME_BY_ID = new Map(WAYPOINTS.map((w) => [w.id, w.name]));
+const MILE_BY_ID = new Map(WAYPOINTS.map((w) => [w.id, w.trailMile]));
 
 interface Pt {
   waypointId: string;
   day: number;
   date: string;
   name: string;
+  trailMile: number;
   lowF: number | null;
   highF: number | null;
   wetPct: number | null;
@@ -112,6 +116,7 @@ export function HikeChart({
         day: pw.dayOfHike,
         date: pw.arrivalDate,
         name: NAME_BY_ID.get(pw.waypointId) ?? pw.waypointId,
+        trailMile: MILE_BY_ID.get(pw.waypointId) ?? 0,
         lowF: pw.weather ? pw.weather.correctedMinF : null,
         highF: pw.weather ? pw.weather.correctedMaxF : null,
         wetPct: pw.weather ? pw.weather.precipProbability * 100 : null,
@@ -226,7 +231,22 @@ export function HikeChart({
   /* ---- render ------------------------------------------------------ */
   return (
     <section className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-semibold text-neutral-900">Conditions along the hike</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-neutral-900">Conditions along the hike</h2>
+        <button
+          type="button"
+          className="rounded-md border border-neutral-300 px-3 py-1 text-xs hover:bg-neutral-50"
+          onClick={() =>
+            downloadText(
+              tableToCsv(pts),
+              tableCsvFileName(plan.startDate, projection.finishDate, plan.direction),
+              "text/csv",
+            )
+          }
+        >
+          Export CSV
+        </button>
+      </div>
 
       {/* filter row = legend: colored line keys + labels */}
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-700">
