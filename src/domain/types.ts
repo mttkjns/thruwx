@@ -158,6 +158,19 @@ export interface GearSwap {
 }
 
 /**
+ * A suggested swap the user chose to ignore. Matches a SuggestedSwap by item,
+ * action, and town; if the plan changes and the suggestion moves to another
+ * town, it shows again (it is a different recommendation).
+ */
+export interface IgnoredSuggestion {
+  itemId: GearItemId;
+  action: SwapAction;
+  waypointId: WaypointId;
+  /** Removed from the suggestions list (still restorable). Absent = shown greyed out. */
+  hidden?: boolean;
+}
+
+/**
  * The complete, persisted plan. This is what gets written to localStorage and what
  * export/import reads and writes. Keep it JSON-serializable (no Date objects — use
  * IsoDate strings) and free of any derived values.
@@ -180,6 +193,8 @@ export interface TripPlan {
   paceMilesPerDay: number;
   gear: GearItem[];
   swaps: GearSwap[];
+  /** Suggestions the user dismissed. Absent = none. */
+  ignoredSuggestions?: IgnoredSuggestion[];
 }
 
 /* ------------------------------------------------------------------ */

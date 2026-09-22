@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { suggestSwaps } from "./swaps";
+import { isSuggestionHidden, isSuggestionIgnored, suggestSwaps } from "./swaps";
 import type {
   GearItem,
+  SuggestedSwap,
   TripPlan,
   Waypoint,
   WaypointProjection,
@@ -62,6 +63,22 @@ const plan = (gear: GearItem[]): TripPlan => ({
   gear,
   swaps: [],
 });
+
+/**
+ * Wrap a fixture in a non-resupply trailhead and finish that repeat the first
+ * and last lows, so suggestions under test never land on a terminus (where
+ * they are filtered out by design).
+ */
+const ENDS = [wp("trailhead", false), wp("finish", false)];
+const pad = (projs: WaypointProjection[]): WaypointProjection[] => {
+  const first = projs[0];
+  const last = projs[projs.length - 1];
+  return [
+    proj("trailhead", first.weather?.correctedMinF ?? null, first.dayOfHike),
+    ...projs,
+    proj("finish", last.weather?.correctedMinF ?? null, last.dayOfHike + 10),
+  ];
+};
 
 /* Tests ---------------------------------------------------------------- */
 
@@ -129,7 +146,7 @@ describe("suggestSwaps", () => {
     // add at the last resupply with data before it.
     const wps = [wp("start", true), wp("gap", false), wp("townB", true)];
     const projs = [proj("start", 40, 0), proj("gap", null, 5), proj("townB", 25, 10)];
-    const swaps = suggestSwaps(plan([puffy]), projs, wps);
+    const swaps = suggestSwaps(plan([puffy]), pad(projs), [...wps, ...ENDS]);
     expect(swaps).toHaveLength(1);
     expect(swaps[0]).toMatchObject({ action: "add", waypointId: "start" });
   });
@@ -137,9 +154,103 @@ describe("suggestSwaps", () => {
   it("threshold is inclusive: a low exactly AT the threshold counts as cold", () => {
     const wps = [wp("a", true), wp("b", true)];
     const projs = [proj("a", 31, 0), proj("b", 30, 10)];
-    const swaps = suggestSwaps(plan([puffy]), projs, wps);
+    const swaps = suggestSwaps(plan([puffy]), pad(projs), [...wps, ...ENDS]);
     expect(swaps).toHaveLength(1);
     expect(swaps[0].action).toBe("add");
+  });
+
+  describe("terminus and same-day rules", () => {
+    it("never suggests picking up at the start waypoint (that's the initial loadout)", () => {
+      // Section starting in a resupply town, cold arriving right after.
+      const wps = [wp("startTown", true), wp("ridge", false), wp("townB", true)];
+      const projs = [proj("startTown", 40, 0), proj("ridge", 25, 10), proj("townB", 22, 20)];
+      expect(suggestSwaps(plan([puffy]), projs, wps)).toEqual([]);
+    });
+
+    it("never suggests sending home at the finish waypoint", () => {
+      const wps = [wp("a", true), wp("b", true), wp("endTown", true)];
+      const projs = [proj("a", 20, 0), proj("b", 22, 10), proj("endTown", 45, 20)];
+      expect(suggestSwaps(plan([puffy]), projs, wps)).toEqual([]);
+    });
+
+    it("cancels a send-home and pick-up in the same town (keep carrying it)", () => {
+      // cold → warm stretch with no resupply → cold again before the finish:
+      // remove and add both land on townM, the only resupply around.
+      const wps = [
+        wp("trailhead", false),
+        wp("townA", true),
+        wp("ridge", false),
+        wp("warm1", false),
+        wp("townM", true),
+        wp("peak", false),
+        wp("finish", false),
+      ];
+      const projs = [
+        proj("trailhead", 40, 0),
+        proj("townA", 38, 10),
+        proj("ridge", 25, 20), //  cold → add at townA
+        proj("warm1", 45, 30), //  warm, sustained through townM
+        proj("townM", 44, 35), //  remove here…
+        proj("peak", 20, 45), //   …cold again: last resupply before is townM
+        proj("finish", 18, 55),
+      ];
+      const swaps = suggestSwaps(plan([puffy]), projs, wps);
+      expect(swaps.map((s) => [s.action, s.waypointId])).toEqual([["add", "townA"]]);
+    });
+
+    it("cancels a send-home and pick-up on the same day in different towns", () => {
+      // Like above, but townM and townN are both reached on day 35: send home
+      // from M, pick back up in N the same day. Keep carrying it instead.
+      const wps = [
+        wp("trailhead", false),
+        wp("townA", true),
+        wp("ridge", false),
+        wp("warm1", false),
+        wp("townM", true),
+        wp("townN", true),
+        wp("peak", false),
+        wp("finish", false),
+      ];
+      const projs = [
+        proj("trailhead", 40, 0),
+        proj("townA", 38, 10),
+        proj("ridge", 25, 20),
+        proj("warm1", 45, 30),
+        proj("townM", 44, 35), //  remove lands here
+        proj("townN", 44, 35), //  add lands here, same day
+        proj("peak", 20, 45),
+        proj("finish", 18, 55),
+      ];
+      const swaps = suggestSwaps(plan([puffy]), projs, wps);
+      expect(swaps.map((s) => [s.action, s.waypointId])).toEqual([["add", "townA"]]);
+    });
+
+    it("keeps a send-home and later pick-up on different days", () => {
+      const wps = [
+        wp("trailhead", false),
+        wp("townA", true),
+        wp("ridge", false),
+        wp("townM", true),
+        wp("townN", true),
+        wp("peak", false),
+        wp("finish", false),
+      ];
+      const projs = [
+        proj("trailhead", 40, 0),
+        proj("townA", 38, 10),
+        proj("ridge", 25, 20),
+        proj("townM", 45, 30), //  remove
+        proj("townN", 44, 40), //  add, 10 days later
+        proj("peak", 20, 45),
+        proj("finish", 18, 55),
+      ];
+      const swaps = suggestSwaps(plan([puffy]), projs, wps);
+      expect(swaps.map((s) => [s.action, s.waypointId])).toEqual([
+        ["add", "townA"],
+        ["remove", "townM"],
+        ["add", "townN"],
+      ]);
+    });
   });
 
   describe("flap guard (SUSTAIN_DAYS lag)", () => {
@@ -177,7 +288,7 @@ describe("suggestSwaps", () => {
         proj("t4", 20, 30),
         proj("t5", 18, 40),
       ];
-      const swaps = suggestSwaps(plan([puffy]), projs, flapWps);
+      const swaps = suggestSwaps(plan([puffy]), pad(projs), [...flapWps, ...ENDS]);
       expect(swaps).toHaveLength(1);
       expect(swaps[0]).toMatchObject({
         action: "add",
@@ -194,18 +305,62 @@ describe("suggestSwaps", () => {
         proj("t2", 28, 15),
         proj("t3", 35, 17), // warm blip: t4 (cold, day 20) is inside its window
         proj("t4", 26, 20),
-        proj("t5", 45, 30), // sustained warm (end of trail)
+        proj("t5", 45, 30), // sustained warm
       ];
-      const swaps = suggestSwaps(plan([puffy]), projs, flapWps);
+      const swaps = suggestSwaps(plan([puffy]), pad(projs), [...flapWps, ...ENDS]);
       expect(swaps.map((s) => s.action)).toEqual(["add", "remove"]);
       expect(swaps[1].triggerWaypointId).toBe("t5");
     });
 
     it("end of trail defers to the final point itself", () => {
-      const projs = [proj("t0", 40, 0), proj("t1", 25, 10)];
-      const swaps = suggestSwaps(plan([puffy]), projs, flapWps.slice(0, 2));
+      // t1 is the last point with weather; the padded finish repeats its low.
+      const projs = [proj("trailhead", 40, 0), proj("t0", 40, 0), proj("t1", 25, 10)];
+      const swaps = suggestSwaps(plan([puffy]), projs, [...flapWps.slice(0, 2), ...ENDS]);
       expect(swaps).toHaveLength(1);
       expect(swaps[0].action).toBe("add");
     });
+  });
+});
+
+describe("isSuggestionIgnored", () => {
+  const plan: TripPlan = {
+    schemaVersion: 1,
+    startDate: "2027-03-01",
+    direction: "NOBO",
+    paceMilesPerDay: 15,
+    gear: [],
+    swaps: [],
+    ignoredSuggestions: [{ itemId: "puffy", action: "remove", waypointId: "damascus-va" }],
+  };
+  const sug = (over: Partial<SuggestedSwap> = {}): SuggestedSwap => ({
+    itemId: "puffy",
+    action: "remove",
+    waypointId: "damascus-va",
+    triggerWaypointId: "damascus-va",
+    thresholdF: 30,
+    crossedTempF: 34,
+    reason: "",
+    ...over,
+  });
+
+  it("matches on item, action, and town", () => {
+    expect(isSuggestionIgnored(plan, sug())).toBe(true);
+    expect(isSuggestionIgnored(plan, sug({ waypointId: "marion-va" }))).toBe(false);
+    expect(isSuggestionIgnored(plan, sug({ action: "add" }))).toBe(false);
+    expect(isSuggestionIgnored(plan, sug({ itemId: "tights" }))).toBe(false);
+  });
+
+  it("reports hidden only for ignores marked hidden", () => {
+    expect(isSuggestionHidden(plan, sug())).toBe(false);
+    const hiddenPlan: TripPlan = {
+      ...plan,
+      ignoredSuggestions: [{ itemId: "puffy", action: "remove", waypointId: "damascus-va", hidden: true }],
+    };
+    expect(isSuggestionHidden(hiddenPlan, sug())).toBe(true);
+    expect(isSuggestionIgnored(hiddenPlan, sug())).toBe(true);
+  });
+
+  it("is false when nothing is ignored", () => {
+    expect(isSuggestionIgnored({ ...plan, ignoredSuggestions: undefined }, sug())).toBe(false);
   });
 });

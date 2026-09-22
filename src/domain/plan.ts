@@ -239,6 +239,39 @@ export function validateTripPlan(input: unknown): PlanValidation {
     });
   }
 
+  const ignoredSuggestions: NonNullable<TripPlan["ignoredSuggestions"]> = [];
+  if (raw.ignoredSuggestions !== undefined) {
+    if (!Array.isArray(raw.ignoredSuggestions)) {
+      errors.push("ignoredSuggestions must be an array when present.");
+    } else {
+      const gearIds = new Set(gear.map((g) => g.id));
+      raw.ignoredSuggestions.forEach((x, i) => {
+        const ig = (typeof x === "object" && x !== null ? x : {}) as Record<string, unknown>;
+        if (
+          typeof ig.itemId !== "string" ||
+          (ig.action !== "add" && ig.action !== "remove") ||
+          typeof ig.waypointId !== "string" ||
+          (ig.hidden !== undefined && typeof ig.hidden !== "boolean")
+        ) {
+          errors.push(
+            `ignoredSuggestions[${i}] must have string itemId and waypointId, action "add" or "remove", and an optional boolean hidden.`,
+          );
+          return;
+        }
+        if (!gearIds.has(ig.itemId)) {
+          errors.push(`ignoredSuggestions[${i}] references unknown gear id "${ig.itemId}".`);
+          return;
+        }
+        ignoredSuggestions.push({
+          itemId: ig.itemId,
+          action: ig.action,
+          waypointId: ig.waypointId,
+          ...(ig.hidden === true ? { hidden: true } : {}),
+        });
+      });
+    }
+  }
+
   if (errors.length > 0) return { ok: false, errors };
   return {
     ok: true,
@@ -252,6 +285,7 @@ export function validateTripPlan(input: unknown): PlanValidation {
       paceMilesPerDay: pace as number,
       gear,
       swaps,
+      ...(ignoredSuggestions.length > 0 ? { ignoredSuggestions } : {}),
     },
   };
 }

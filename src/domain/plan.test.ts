@@ -134,6 +134,18 @@ describe("validateTripPlan", () => {
     expect(validateTripPlan({ ...valid, endWaypointId: "" }).ok).toBe(false);
   });
 
+  it("keeps ignored suggestions and rejects bad ones", () => {
+    const ig = { itemId: "puffy", action: "add", waypointId: "damascus-va" };
+    const ok = validateTripPlan({ ...valid, ignoredSuggestions: [ig] });
+    expect(ok.ok && ok.plan.ignoredSuggestions).toEqual([ig]);
+    expect(validateTripPlan({ ...valid, ignoredSuggestions: "no" }).ok).toBe(false);
+    expect(validateTripPlan({ ...valid, ignoredSuggestions: [{ ...ig, action: "keep" }] }).ok).toBe(false);
+    expect(validateTripPlan({ ...valid, ignoredSuggestions: [{ ...ig, itemId: "ghost" }] }).ok).toBe(false);
+    const hidden = validateTripPlan({ ...valid, ignoredSuggestions: [{ ...ig, hidden: true }] });
+    expect(hidden.ok && hidden.plan.ignoredSuggestions).toEqual([{ ...ig, hidden: true }]);
+    expect(validateTripPlan({ ...valid, ignoredSuggestions: [{ ...ig, hidden: "yes" }] }).ok).toBe(false);
+  });
+
   it("rejects non-objects", () => {
     expect(validateTripPlan(null).ok).toBe(false);
     expect(validateTripPlan([]).ok).toBe(false);

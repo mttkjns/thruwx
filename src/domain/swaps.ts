@@ -26,9 +26,21 @@
  *
  * Edge: if a downward crossing happens before any resupply town, the item
  * belongs in the initial loadout — that's not a swap, so no suggestion.
+ *
+ * Two clean-up rules run on each item's suggestions, in this order:
+ *
+ *   1. SAME-DAY CANCEL: a suggestion followed by the opposite one for the same
+ *      item on the same projected day or earlier cancels out — e.g. "send home
+ *      from Monson" then "pick up in Monson" (lows rise, then drop again
+ *      before the finish, with no resupply between). Drop both: the hiker
+ *      just keeps carrying it (or never picks it up).
+ *   2. NO TERMINUS SWAPS: nothing is suggested at the first or last waypoint
+ *      of the hike. A pick-up at the start is the initial loadout, and a
+ *      send-home at the finish is pointless.
  */
 import type {
   GearItem,
+  IgnoredSuggestion,
   SuggestedSwap,
   TripPlan,
   Waypoint,
@@ -37,6 +49,14 @@ import type {
 
 /** A state flip must hold this many projected days to count as a crossing. */
 export const SUSTAIN_DAYS = 7;
+
+interface Placed {
+  suggestion: SuggestedSwap;
+  /** Projected day at the placement town, for same-day cancelling. */
+  dayOfHike: number;
+  /** Index of the placement town in the hike-ordered points. */
+  index: number;
+}
 
 interface Point {
   waypointId: string;
@@ -67,7 +87,7 @@ function suggestForItem(item: GearItem, points: Point[]): SuggestedSwap[] {
   const thresholdF = item.comfortThresholdF;
   if (thresholdF === undefined) return [];
 
-  const out: SuggestedSwap[] = [];
+  const out: Placed[] = [];
   let committed: boolean | null = null; // cold-state at the last honored point
 
   for (let i = 0; i < points.length; i++) {
@@ -84,12 +104,11 @@ function suggestForItem(item: GearItem, points: Point[]): SuggestedSwap[] {
     const cur = points[i];
     if (cold) {
       // Downward crossing at `cur`: add at the last resupply before it.
-      const at = points
-        .slice(0, i)
-        .reverse()
-        .find((p) => p.isResupply);
+      let atIndex = i - 1;
+      while (atIndex >= 0 && !points[atIndex].isResupply) atIndex--;
+      const at = points[atIndex];
       if (at) {
-        out.push({
+        out.push({ dayOfHike: at.dayOfHike, index: atIndex, suggestion: {
           itemId: item.id,
           action: "add",
           waypointId: at.waypointId,
@@ -99,13 +118,15 @@ function suggestForItem(item: GearItem, points: Point[]): SuggestedSwap[] {
           reason:
             `Lows drop to ${Math.round(low)}°F at ${cur.name} ` +
             `(≤ ${thresholdF}°F threshold) — pick up “${item.name}” in ${at.name}.`,
-        });
+        } });
       }
     } else {
       // Upward crossing at `cur`: remove at the first resupply at/after it.
-      const at = points.slice(i).find((p) => p.isResupply);
+      let atIndex = i;
+      while (atIndex < points.length && !points[atIndex].isResupply) atIndex++;
+      const at = points[atIndex];
       if (at) {
-        out.push({
+        out.push({ dayOfHike: at.dayOfHike, index: atIndex, suggestion: {
           itemId: item.id,
           action: "remove",
           waypointId: at.waypointId,
@@ -115,12 +136,29 @@ function suggestForItem(item: GearItem, points: Point[]): SuggestedSwap[] {
           reason:
             `Lows rise to ${Math.round(low)}°F by ${cur.name} ` +
             `(> ${thresholdF}°F threshold) — send “${item.name}” home from ${at.name}.`,
-        });
+        } });
       }
     }
     committed = cold;
   }
-  return out;
+
+  // 1. Same-day cancel. Actions alternate per item, so a stack pairs each
+  // suggestion with the opposite one before it.
+  const kept: Placed[] = [];
+  for (const p of out) {
+    const prev = kept[kept.length - 1];
+    if (prev && prev.suggestion.action !== p.suggestion.action && p.dayOfHike <= prev.dayOfHike) {
+      kept.pop();
+      continue;
+    }
+    kept.push(p);
+  }
+
+  // 2. No swaps at the start or finish of the hike.
+  const lastIndex = points.length - 1;
+  return kept
+    .filter((p) => p.index !== 0 && p.index !== lastIndex)
+    .map((p) => p.suggestion);
 }
 
 export function suggestSwaps(
@@ -145,4 +183,21 @@ export function suggestSwaps(
   });
 
   return plan.gear.flatMap((item) => suggestForItem(item, points));
+}
+
+/** True when the user has ignored this exact suggestion (same item, action, and town). */
+export function isSuggestionIgnored(plan: TripPlan, suggestion: SuggestedSwap): boolean {
+  return (plan.ignoredSuggestions ?? []).some((ig) => sameSuggestion(ig, suggestion));
+}
+
+/** True when the user ignored this suggestion and then removed it from the list. */
+export function isSuggestionHidden(plan: TripPlan, suggestion: SuggestedSwap): boolean {
+  return (plan.ignoredSuggestions ?? []).some((ig) => ig.hidden === true && sameSuggestion(ig, suggestion));
+}
+
+export function sameSuggestion(
+  a: Omit<IgnoredSuggestion, "hidden">,
+  b: Omit<IgnoredSuggestion, "hidden">,
+): boolean {
+  return a.itemId === b.itemId && a.action === b.action && a.waypointId === b.waypointId;
 }
