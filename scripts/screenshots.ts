@@ -1,6 +1,8 @@
 /**
  * README screenshots — regenerates docs/screenshots/*.png from the production
- * build, using a fixed demo plan so the images are reproducible.
+ * build, using a fixed demo plan so the images are reproducible. Also writes
+ * public/og-image.jpg, the 1200×630 link-preview image (Open Graph tags in
+ * index.html), which unlike docs/ is deployed with the site.
  *
  *   npm run screenshots
  *
@@ -19,6 +21,7 @@ import type { TripPlan } from "../src/domain/types";
 
 const ROOT = path.join(import.meta.dirname, "..");
 const OUT_DIR = path.join(ROOT, "docs/screenshots");
+const OG_IMAGE = path.join(ROOT, "public/og-image.jpg");
 const PORT = 4179;
 const URL = `http://localhost:${PORT}/`;
 
@@ -120,6 +123,13 @@ try {
   await waitForTiles(desktop);
   // The chart card is taller than the map; end the image below it.
   await shot(desktop, "map.png", desktop.locator("section", { hasText: "Conditions along the hike" }));
+
+  // Link preview: the standard 1200×630 Open Graph size. JPEG keeps the
+  // photo-like map tiles small.
+  await desktop.setViewportSize({ width: 1200, height: 630 });
+  await waitForTiles(desktop);
+  await desktop.screenshot({ path: OG_IMAGE, type: "jpeg", quality: 85 });
+  console.log(`  ${"og-image.jpg".padEnd(12)} ${(statSync(OG_IMAGE).size / 1024).toFixed(0)} KB  (public/)`);
 
   await desktop.setViewportSize({ width: 1280, height: 1100 });
   await desktop.getByRole("button", { name: "gear", exact: true }).click();
