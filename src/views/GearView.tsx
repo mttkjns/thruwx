@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { isSuggestionHidden, isSuggestionIgnored } from "../domain/swaps";
+import { describeSuggestion, isSuggestionHidden, isSuggestionIgnored } from "../domain/swaps";
 import type { GearCategory, GearItem, SuggestedSwap } from "../domain/types";
+import { fromUnit, toUnit } from "../domain/units";
 import { LoadClimateCard } from "../components/LoadClimateCard";
 import { PlanSummary } from "../components/PlanSummary";
-import { fmtDate } from "../components/format";
+import { fmtDate, useTempFormat } from "../components/format";
 import { useClimateStore } from "../state/climateStore";
 import { usePlanStore } from "../state/planStore";
 import { useProjection, WAYPOINTS } from "../state/useProjection";
@@ -35,6 +36,44 @@ function useSectionResupply() {
 /* Gear items                                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Comfort threshold in the viewer's unit, stored as °F. While focused the
+ * input shows the raw draft the user is typing; converting every keystroke
+ * would rewrite it under them ("4." → 39.2°F → "4"). Unfocused, it shows the
+ * stored value converted, to at most one decimal.
+ */
+function ThresholdInput({ item }: { item: GearItem }) {
+  const updateGearItem = usePlanStore((s) => s.updateGearItem);
+  const { unit, symbol } = useTempFormat();
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const stored = item.comfortThresholdF;
+  const shown = stored === undefined ? "" : String(Math.round(toUnit(stored, unit) * 10) / 10 + 0);
+
+  return (
+    <label className="flex items-center gap-1 text-sm text-neutral-600">
+      comfort ≤
+      <input
+        type="number"
+        className="w-16 rounded-md border border-neutral-300 p-1.5 text-sm"
+        placeholder="—"
+        value={draft ?? shown}
+        onFocus={() => setDraft(shown)}
+        onBlur={() => setDraft(null)}
+        onChange={(e) => {
+          const text = e.target.value;
+          setDraft(text);
+          if (text === "") updateGearItem(item.id, { comfortThresholdF: undefined });
+          else if (Number.isFinite(Number(text))) {
+            updateGearItem(item.id, { comfortThresholdF: fromUnit(Number(text), unit) });
+          }
+        }}
+      />
+      {symbol}
+    </label>
+  );
+}
+
 function GearItemRow({ item }: { item: GearItem }) {
   const updateGearItem = usePlanStore((s) => s.updateGearItem);
   const removeGearItem = usePlanStore((s) => s.removeGearItem);
@@ -61,22 +100,7 @@ function GearItemRow({ item }: { item: GearItem }) {
           </option>
         ))}
       </select>
-      <label className="flex items-center gap-1 text-sm text-neutral-600">
-        comfort ≤
-        <input
-          type="number"
-          className="w-16 rounded-md border border-neutral-300 p-1.5 text-sm"
-          placeholder="—"
-          value={item.comfortThresholdF ?? ""}
-          onChange={(e) =>
-            updateGearItem(item.id, {
-              comfortThresholdF:
-                e.target.value === "" ? undefined : Number(e.target.value),
-            })
-          }
-        />
-        °F
-      </label>
+      <ThresholdInput item={item} />
       <button
         type="button"
         className="ml-auto rounded-md px-2 py-1 text-sm text-red-700 hover:bg-red-50"
@@ -208,6 +232,16 @@ function SuggestionRow({ suggestion }: { suggestion: SuggestedSwap }) {
   const projection = useProjection();
   const ignored = isSuggestionIgnored(plan, suggestion);
   const hidden = isSuggestionHidden(plan, suggestion);
+  const { unit } = useTempFormat();
+  const reason = describeSuggestion(
+    suggestion,
+    {
+      item: plan.gear.find((g) => g.id === suggestion.itemId)?.name ?? suggestion.itemId,
+      trigger: waypointName(suggestion.triggerWaypointId),
+      at: waypointName(suggestion.waypointId),
+    },
+    unit,
+  );
 
   const arrival = projection.waypoints.find(
     (w) => w.waypointId === suggestion.waypointId,
@@ -255,7 +289,7 @@ function SuggestionRow({ suggestion }: { suggestion: SuggestedSwap }) {
         {suggestion.action === "add" ? "pick up" : "send home"}
       </span>
       <span className="grow text-neutral-700">
-        {suggestion.reason}
+        {reason}
         {arrival && <span className="text-neutral-500"> Arriving {fmtDate(arrival)}.</span>}
       </span>
       {planned ? (
@@ -328,6 +362,7 @@ export function GearView() {
   const sectionResupply = useSectionResupply();
   const climateReady = useClimateStore((s) => s.status === "ready");
   const plan = usePlanStore((s) => s.plan);
+  const { symbol } = useTempFormat();
   // Removed suggestions stay restorable; this toggle is view state only.
   const [showRemoved, setShowRemoved] = useState(false);
   const removedCount = projection.suggestedSwaps.filter((s) => isSuggestionHidden(plan, s)).length;
@@ -351,7 +386,7 @@ export function GearView() {
           </button>
         </div>
         <p className="mt-1 text-sm text-neutral-500">
-          Give an item a comfort threshold (the low °F at which you want it) and
+          Give an item a comfort threshold (the low {symbol} at which you want it) and
           ThruWx will suggest where to swap it. No threshold = fully manual.
         </p>
         {gear.length > 0 && (

@@ -6,7 +6,7 @@ import { downloadText } from "../state/planIO";
 import { tableCsvFileName, tableToCsv } from "../state/tableCsv";
 import { useSectionProfile } from "../state/useProfile";
 import { useProjection, WAYPOINTS } from "../state/useProjection";
-import { fmtDate } from "./format";
+import { fmtDate, useTempFormat } from "./format";
 
 /**
  * Conditions along the hike: date on x; four stacked panels (temperature,
@@ -105,6 +105,9 @@ export function HikeChart({
   const plan = usePlanStore((s) => s.plan);
   const projection = useProjection();
   const profile = useSectionProfile();
+  const { unit, symbol, tempWithUnit, toDisplay } = useTempFormat();
+  // Temperatures arrive in °F; the chart plots them in the display unit.
+  const disp = (f: number | null) => (f === null ? null : toDisplay(f));
 
   const [show, setShow] = useState<Record<SeriesKey, boolean>>({
     high: true,
@@ -143,9 +146,12 @@ export function HikeChart({
   /* ---- scales ---------------------------------------------------- */
   const sx = (day: number) => ML + (day / Math.max(totalDays, 1)) * (W - ML - MR);
 
-  const tempVals = pts.flatMap((p) => [p.lowF, p.highF]).filter((v): v is number => v !== null);
-  const tempMin = Math.floor(((tempVals.length ? Math.min(...tempVals) : 20) - 4) / 10) * 10;
-  const tempMax = Math.ceil(((tempVals.length ? Math.max(...tempVals) : 90) + 4) / 10) * 10;
+  // Range and ticks are computed on display-unit values, so °C gets round
+  // ticks (0, 10, 20) rather than converted °F ones.
+  const tempVals = pts.flatMap((p) => [disp(p.lowF), disp(p.highF)]).filter((v): v is number => v !== null);
+  const tempPad = unit === "C" ? 2 : 4;
+  const tempMin = Math.floor(((tempVals.length ? Math.min(...tempVals) : toDisplay(20)) - tempPad) / 10) * 10;
+  const tempMax = Math.ceil(((tempVals.length ? Math.max(...tempVals) : toDisplay(90)) + tempPad) / 10) * 10;
   const dayVals = pts.map((p) => p.daylightH);
   const dayMin = Math.floor(Math.min(...dayVals) - 0.5);
   const dayMax = Math.ceil(Math.max(...dayVals) + 0.5);
@@ -179,7 +185,7 @@ export function HikeChart({
     cursor += h + 14;
   };
   if (showTemp)
-    push("temp", "Temperature (°F, corrected)", 160, tempMin, tempMax,
+    push("temp", `Temperature (${symbol}, corrected)`, 160, tempMin, tempMax,
       ticksBetween(tempMin, tempMax, tempMax - tempMin > 60 ? 20 : 10), (v) => `${v}°`);
   if (show.wet) push("wet", "Chance of a wet day (%)", 90, 0, 100, [0, 50, 100], (v) => `${v}%`);
   if (show.daylight)
@@ -234,8 +240,8 @@ export function HikeChart({
     hovered === null
       ? []
       : ([
-          show.high && hovered.highF !== null && { key: "high", label: "High", value: `${Math.round(hovered.highF)}°F` },
-          show.low && hovered.lowF !== null && { key: "low", label: "Low", value: `${Math.round(hovered.lowF)}°F` },
+          show.high && hovered.highF !== null && { key: "high", label: "High", value: tempWithUnit(hovered.highF) },
+          show.low && hovered.lowF !== null && { key: "low", label: "Low", value: tempWithUnit(hovered.lowF) },
           show.wet && hovered.wetPct !== null && { key: "wet", label: "Wet chance", value: `${Math.round(hovered.wetPct)}%` },
           show.daylight && { key: "daylight", label: "Daylight", value: `${hovered.daylightH.toFixed(1)}h` },
           show.elev && { key: "elev", label: "Elevation", value: `${hovered.elevationFt.toLocaleString()} ft` },
@@ -259,7 +265,7 @@ export function HikeChart({
           className="rounded-md border border-neutral-300 px-3 py-1 text-xs hover:bg-neutral-50"
           onClick={() =>
             downloadText(
-              tableToCsv(pts),
+              tableToCsv(pts, unit),
               tableCsvFileName(plan.startDate, projection.finishDate, plan.direction),
               "text/csv",
             )
@@ -323,8 +329,8 @@ export function HikeChart({
 
                   {p.key === "temp" && (
                     <>
-                      {show.high && <path d={segments(pts, (x) => x.highF, sx, sy)} fill="none" stroke={COLOR.high} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
-                      {show.low && <path d={segments(pts, (x) => x.lowF, sx, sy)} fill="none" stroke={COLOR.low} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
+                      {show.high && <path d={segments(pts, (x) => disp(x.highF), sx, sy)} fill="none" stroke={COLOR.high} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
+                      {show.low && <path d={segments(pts, (x) => disp(x.lowF), sx, sy)} fill="none" stroke={COLOR.low} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
                     </>
                   )}
                   {p.key === "wet" && (
@@ -358,7 +364,7 @@ export function HikeChart({
                   {hovered &&
                     (p.key === "temp"
                       ? ([show.high && hovered.highF, show.low && hovered.lowF].filter((v) => v !== null && v !== false) as number[]).map((v, i) => (
-                          <circle key={i} cx={sx(hovered.day)} cy={sy(v)} r="4.5" fill={i === 0 && show.high ? COLOR.high : COLOR.low} stroke={SURFACE} strokeWidth="2" />
+                          <circle key={i} cx={sx(hovered.day)} cy={sy(toDisplay(v))} r="4.5" fill={i === 0 && show.high ? COLOR.high : COLOR.low} stroke={SURFACE} strokeWidth="2" />
                         ))
                       : p.key === "wet" && hovered.wetPct !== null
                         ? <circle cx={sx(hovered.day)} cy={sy(hovered.wetPct)} r="4.5" fill={COLOR.wet} stroke={SURFACE} strokeWidth="2" />
@@ -436,8 +442,8 @@ export function HikeChart({
                 <th className="py-1 pr-2 font-normal">Waypoint</th>
                 <th className="py-1 pr-2 text-right font-normal">Elev ft</th>
                 <th className="py-1 pr-2 font-normal">Date</th>
-                <th className="py-1 pr-2 text-right font-normal">Low °F</th>
-                <th className="py-1 pr-2 text-right font-normal">High °F</th>
+                <th className="py-1 pr-2 text-right font-normal">Low {symbol}</th>
+                <th className="py-1 pr-2 text-right font-normal">High {symbol}</th>
                 <th className="py-1 pr-2 text-right font-normal">Wet %</th>
                 <th className="py-1 text-right font-normal">Daylight</th>
               </tr>
@@ -453,8 +459,8 @@ export function HikeChart({
                   <td className="py-1 pr-2">{p.name}</td>
                   <td className="py-1 pr-2 text-right">{p.elevationFt.toLocaleString()}</td>
                   <td className="py-1 pr-2">{fmtDate(p.date)}</td>
-                  <td className="py-1 pr-2 text-right">{p.lowF === null ? "—" : Math.round(p.lowF)}</td>
-                  <td className="py-1 pr-2 text-right">{p.highF === null ? "—" : Math.round(p.highF)}</td>
+                  <td className="py-1 pr-2 text-right">{p.lowF === null ? "—" : Math.round(toDisplay(p.lowF)) + 0}</td>
+                  <td className="py-1 pr-2 text-right">{p.highF === null ? "—" : Math.round(toDisplay(p.highF)) + 0}</td>
                   <td className="py-1 pr-2 text-right">{p.wetPct === null ? "—" : Math.round(p.wetPct)}</td>
                   <td className="py-1 text-right">{p.daylightH.toFixed(1)}h</td>
                 </tr>

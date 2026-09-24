@@ -1,5 +1,6 @@
 import { createDefaultPlan } from "../domain/plan";
 import { usePlanStore } from "../state/planStore";
+import { useTempFormat } from "./format";
 
 /**
  * First-run guidance. Shown only while the plan is pristine (default start,
@@ -8,6 +9,7 @@ import { usePlanStore } from "../state/planStore";
  */
 export function WelcomeBanner() {
   const plan = usePlanStore((s) => s.plan);
+  const { lapseDeg } = useTempFormat();
   const fresh = createDefaultPlan();
 
   const pristine =
@@ -28,7 +30,7 @@ export function WelcomeBanner() {
         </li>
         <li>
           Scan the timeline: temperatures are historical normals, corrected to the
-          trail's elevation (ridges run ~3.5°F colder per 1,000 ft than the towns
+          trail's elevation (ridges run ~{lapseDeg} colder per 1,000 ft than the towns
           where weather stations sit).
         </li>
         <li>

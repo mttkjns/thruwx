@@ -4,7 +4,7 @@ import { useClimateStore } from "../state/climateStore";
 import {
   fmtDate,
   fmtDayLength,
-  fmtTemp,
+  useTempFormat,
   fmtTimeET,
   MOON_EMOJI,
   moonLabel,
@@ -31,6 +31,7 @@ export function WaypointRow({
 }) {
   const w = projection.weather;
   const climateReady = useClimateStore((s) => s.status === "ready");
+  const { temp, lapseText } = useTempFormat();
   return (
     <li className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -57,9 +58,9 @@ export function WaypointRow({
           <div>
             <div className="flex items-center gap-3">
               <span className="w-24 shrink-0 text-sm tabular-nums">
-                <span className="font-semibold text-neutral-900">{fmtTemp(w.correctedMinF)}</span>
+                <span className="font-semibold text-neutral-900">{temp(w.correctedMinF)}</span>
                 <span className="text-neutral-400"> / </span>
-                <span className="font-semibold text-neutral-900">{fmtTemp(w.correctedMaxF)}</span>
+                <span className="font-semibold text-neutral-900">{temp(w.correctedMaxF)}</span>
               </span>
               <div className="grow">
                 <TempBand lowF={w.correctedMinF} highF={w.correctedMaxF} />
@@ -67,14 +68,14 @@ export function WaypointRow({
             </div>
             <details className="mt-1.5 text-xs text-neutral-500">
               <summary className="cursor-pointer select-none hover:text-neutral-700">
-                corrected from station {fmtTemp(w.stationMinF)}/{fmtTemp(w.stationMaxF)}
+                corrected from station {temp(w.stationMinF)}/{temp(w.stationMaxF)}
                 {" · "}trail {w.elevationDeltaFt >= 0 ? "+" : ""}
                 {w.elevationDeltaFt.toLocaleString()} ft
               </summary>
               <p className="mt-1 max-w-prose">
                 Trail at {waypoint.trailElevationFt.toLocaleString()} ft vs station at{" "}
                 {waypoint.stationElevationFt?.toLocaleString()} ft. Temperatures adjusted
-                by 3.5°F per 1,000 ft of elevation difference — ridge weather, not town
+                by {lapseText} of elevation difference — ridge weather, not town
                 weather.
               </p>
             </details>

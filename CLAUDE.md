@@ -101,6 +101,10 @@ Runtime:     React SPA loads the two JSON files, does all math in-browser,
 - All temperatures in °F, distances in miles, elevation in feet, precip in inches
   (US hiker units). Keep units in variable names where ambiguous (`...F`, `...Ft`,
   `...In`, `...Mile`).
+- °C is **display-only**: the domain, data, and persisted plan always hold °F.
+  UI shows temperatures through `useTempFormat()` (`src/components/format.ts`),
+  and inputs convert back with `fromUnit()` (`src/domain/units.ts`). The unit
+  choice lives in `unitsStore`, not in `TripPlan`. Never hard-code "°F" in UI text.
 - Domain logic lives in `src/domain/` as **pure functions** with no React imports.
   UI never does climate math inline — it calls domain functions. This keeps the
   valuable logic testable in isolation.

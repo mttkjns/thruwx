@@ -33,3 +33,16 @@ describe("tableCsvFileName", () => {
     expect(tableCsvFileName("2027-06-15", "2027-12-01", "SOBO")).toBe("20270615-20271201-SOBO.csv");
   });
 });
+
+describe("tableToCsv in °C", () => {
+  it("names °C in the header and converts only the temperatures", () => {
+    const csv = tableToCsv(
+      [{ name: "Springer Mountain", trailMile: 0, elevationFt: 3780, date: "2027-03-01", lowF: 28.6, highF: 51.2, wetPct: 33.4, daylightH: 11.54 }],
+      "C",
+    );
+    expect(csv).toBe(
+      "Waypoint,Mile,Elevation (ft),Date,Low °C,High °C,Wet %,Daylight (h)\r\n" +
+        "Springer Mountain,0.0,3780,2027-03-01,-2,11,33,11.5\r\n",
+    );
+  });
+});

@@ -1,4 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { useTempFormat } from "./components/format";
+import { TempUnitToggle } from "./components/TempUnitToggle";
 import { autoLoadClimateIfConsented } from "./state/climateStore";
 import { GearView } from "./views/GearView";
 import { TimelineView } from "./views/TimelineView";
@@ -11,6 +13,7 @@ type Tab = "timeline" | "map" | "gear";
 export default function App() {
   const [tab, setTab] = useState<Tab>("timeline");
   useEffect(autoLoadClimateIfConsented, []);
+  const { lapseText } = useTempFormat();
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
@@ -22,12 +25,13 @@ export default function App() {
               AT thru-hike weather planner
             </span>
           </h1>
+          <div className="flex items-center gap-2">
           <nav className="flex gap-1 rounded-lg bg-neutral-100 p-1 text-sm">
             {(["timeline", "map", "gear"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
-                className={`rounded-md px-3 py-1.5 capitalize ${
+                className={`rounded-md px-2 py-1.5 capitalize sm:px-3 ${
                   tab === t
                     ? "bg-white font-medium shadow-sm"
                     : "text-neutral-600 hover:text-neutral-900"
@@ -38,6 +42,8 @@ export default function App() {
               </button>
             ))}
           </nav>
+          <TempUnitToggle />
+          </div>
         </div>
       </header>
 
@@ -59,8 +65,8 @@ export default function App() {
       <footer className="mx-auto max-w-3xl px-4 pb-6 text-xs text-neutral-500">
         <p>
           Temperatures are 1991–2020 historical normals (NOAA data via RCC-ACIS),
-          corrected from each weather station to the trail's elevation at 3.5°F per
-          1,000 ft. They describe <span className="font-medium">typical</span>{" "}
+          corrected from each weather station to the trail's elevation at{" "}
+          {lapseText}. They describe <span className="font-medium">typical</span>{" "}
           conditions for a date — <span className="font-medium">not a forecast</span>.
           Any given week can be far colder, hotter, or wetter. Elevations from USGS 3DEP;
           trail profile follows{" "}

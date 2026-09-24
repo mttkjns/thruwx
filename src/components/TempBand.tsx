@@ -1,4 +1,4 @@
-import { fmtTemp, tempColor } from "./format";
+import { tempColor, useTempFormat } from "./format";
 
 /** Shared scale across all rows so the cold→warm→cold arc reads down the page. */
 const SCALE_MIN_F = -10;
@@ -13,13 +13,14 @@ const pct = (f: number) =>
  * freezing. Rendered per waypoint row; stacked rows form the seasonal arc.
  */
 export function TempBand({ lowF, highF }: { lowF: number; highF: number }) {
+  const { temp } = useTempFormat();
   const left = pct(lowF);
   const width = Math.max(pct(highF) - left, 1.5);
   return (
     <div
       className="relative h-2.5 w-full rounded-full bg-neutral-200/70"
       role="img"
-      aria-label={`Low ${fmtTemp(lowF)}, high ${fmtTemp(highF)}`}
+      aria-label={`Low ${temp(lowF)}, high ${temp(highF)}`}
     >
       {/* freeze tick */}
       <div
