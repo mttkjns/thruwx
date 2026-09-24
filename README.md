@@ -85,3 +85,18 @@ public domain).
 Weather data: NOAA, via RCC-ACIS web services. Elevations: USGS 3DEP. Trail
 line for the elevation profile: © OpenStreetMap contributors (ODbL); see
 Decision 3 in the data notes.
+
+## License
+
+The code is released under the [MIT License](LICENSE), and so is the
+hand-curated `src/data/waypoints.json`.
+
+The data files come from other sources and keep those sources' terms:
+
+- `src/data/profile.json`: built from OpenStreetMap data, so it is licensed
+  under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/).
+  © OpenStreetMap contributors. If you reuse or adapt it, keep the
+  attribution and share any adapted version under ODbL.
+- `src/data/climate.json`: computed from NOAA data (via RCC-ACIS), which is
+  in the public domain.
+- Elevations throughout come from USGS 3DEP, also in the public domain.
