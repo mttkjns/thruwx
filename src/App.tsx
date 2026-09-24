@@ -64,6 +64,12 @@ export default function App() {
           conditions for a date — <span className="font-medium">not a forecast</span>.
           Any given week can be far colder, hotter, or wetter. Elevations from USGS 3DEP.
         </p>
+        <p className="mt-2 text-center">
+          Comments or Suggestions?{" "}
+          <a href="mailto:mail@thruwx.com" className="underline hover:text-neutral-700">
+            mail@thruwx.com
+          </a>
+        </p>
       </footer>
     </div>
   );
