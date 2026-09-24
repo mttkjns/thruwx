@@ -79,7 +79,7 @@
   },
   {
     "id": "clingmans-dome",
-    "name": "Clingmans Dome",
+    "name": "Kuwohi (Clingmans Dome)",
     "state": "TN",
     "trailMile": 199.4,
     "lat": 35.5628,
@@ -89,19 +89,6 @@
     "stationId": "USC00406328",
     "stationElevationFt": 6493,
     "notes": "Highest point on the entire AT. Climate high point, not a resupply."
-  },
-  {
-    "id": "gatlinburg-tn",
-    "name": "Gatlinburg (via Newfound Gap)",
-    "state": "TN",
-    "trailMile": 207.3,
-    "lat": 35.7143,
-    "lng": -83.5102,
-    "trailElevationFt": 5046,
-    "isResupply": true,
-    "stationId": "USC00403420",
-    "stationElevationFt": 1454,
-    "notes": "Trail elevation is Newfound Gap (~5046 ft); town sits ~1300 ft — a big correction. Coords are the town."
   },
   {
     "id": "hot-springs-nc",
