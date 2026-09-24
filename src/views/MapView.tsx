@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { CircleMarker, MapContainer, Polyline, Popup, TileLayer } from "react-leaflet";
+import { useEffect, useState } from "react";
+import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { HikeChart } from "../components/HikeChart";
 import { LoadClimateCard } from "../components/LoadClimateCard";
@@ -8,6 +8,25 @@ import { fmtDate, fmtTemp, tempColor } from "../components/format";
 import { useProjection, WAYPOINTS } from "../state/useProjection";
 
 const POSITIONS = WAYPOINTS.map((w) => [w.lat, w.lng] as [number, number]);
+
+/** Touch-first device (phone/tablet), where a tall map swallows page scrolling. */
+const IS_TOUCH =
+  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+
+/**
+ * Turns one-finger drag and pinch-zoom on/off. Disabling them also drops
+ * Leaflet's touch-action CSS on the container, so swipes scroll the page.
+ */
+function PanLock({ locked }: { locked: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    for (const handler of [map.dragging, map.touchZoom]) {
+      if (locked) handler.disable();
+      else handler.enable();
+    }
+  }, [map, locked]);
+  return null;
+}
 
 /**
  * Map view: every waypoint in the planned section as a marker colored by its
@@ -26,6 +45,9 @@ export default function MapView() {
   // Set by the chart below (crosshair or data-table row); the matching map
   // marker enlarges with an ink ring so table ↔ geography stay connected.
   const [hoverId, setHoverId] = useState<string | null>(null);
+  // On touch devices the map starts locked so swipes scroll the page; the
+  // button over the map unlocks panning and zooming.
+  const [locked, setLocked] = useState(IS_TOUCH);
 
   return (
     <div className="space-y-4">
@@ -34,13 +56,14 @@ export default function MapView() {
 
       <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
         <div>
-          <div className="overflow-hidden rounded-xl border border-neutral-200 shadow-sm">
+          <div className="relative overflow-hidden rounded-xl border border-neutral-200 shadow-sm">
         <MapContainer
           bounds={POSITIONS}
           boundsOptions={{ padding: [20, 20] }}
           scrollWheelZoom
           className="h-[70vh] w-full"
         >
+          <PanLock locked={locked} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -114,6 +137,16 @@ export default function MapView() {
             );
           })}
           </MapContainer>
+          {IS_TOUCH && (
+            <button
+              type="button"
+              className="absolute right-2 top-2 z-[1000] rounded-md border border-neutral-300 bg-white/95 px-3 py-1.5 text-sm shadow-sm"
+              aria-pressed={!locked}
+              onClick={() => setLocked(!locked)}
+            >
+              {locked ? "🔒 Tap to move map" : "🔓 Lock map"}
+            </button>
+          )}
           </div>
 
           <p className="mt-2 px-1 text-xs text-neutral-500">
