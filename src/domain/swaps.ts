@@ -46,6 +46,7 @@ import type {
   Waypoint,
   WaypointProjection,
 } from "./types";
+import { toUnit, type TempUnit } from "./units";
 
 /** A state flip must hold this many projected days to count as a crossing. */
 export const SUSTAIN_DAYS = 7;
@@ -115,9 +116,6 @@ function suggestForItem(item: GearItem, points: Point[]): SuggestedSwap[] {
           triggerWaypointId: cur.waypointId,
           thresholdF,
           crossedTempF: low,
-          reason:
-            `Lows drop to ${Math.round(low)}°F at ${cur.name} ` +
-            `(≤ ${thresholdF}°F threshold) — pick up “${item.name}” in ${at.name}.`,
         } });
       }
     } else {
@@ -133,9 +131,6 @@ function suggestForItem(item: GearItem, points: Point[]): SuggestedSwap[] {
           triggerWaypointId: cur.waypointId,
           thresholdF,
           crossedTempF: low,
-          reason:
-            `Lows rise to ${Math.round(low)}°F by ${cur.name} ` +
-            `(> ${thresholdF}°F threshold) — send “${item.name}” home from ${at.name}.`,
         } });
       }
     }
@@ -200,4 +195,22 @@ export function sameSuggestion(
   b: Omit<IgnoredSuggestion, "hidden">,
 ): boolean {
   return a.itemId === b.itemId && a.action === b.action && a.waypointId === b.waypointId;
+}
+
+/**
+ * The human-readable rationale for a suggestion, in the viewer's temperature
+ * unit. Built at display time (not stored on the suggestion) so the unit
+ * toggle applies; names are passed in because the suggestion carries ids.
+ */
+export function describeSuggestion(
+  s: SuggestedSwap,
+  names: { item: string; trigger: string; at: string },
+  unit: TempUnit = "F",
+): string {
+  const deg = (f: number) => `${Math.round(toUnit(f, unit)) + 0}°${unit}`;
+  return s.action === "add"
+    ? `Lows drop to ${deg(s.crossedTempF)} at ${names.trigger} ` +
+        `(≤ ${deg(s.thresholdF)} threshold) — pick up “${names.item}” in ${names.at}.`
+    : `Lows rise to ${deg(s.crossedTempF)} by ${names.trigger} ` +
+        `(> ${deg(s.thresholdF)} threshold) — send “${names.item}” home from ${names.at}.`;
 }

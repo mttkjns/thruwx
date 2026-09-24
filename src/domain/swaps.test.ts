@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSuggestionHidden, isSuggestionIgnored, suggestSwaps } from "./swaps";
+import { describeSuggestion, isSuggestionHidden, isSuggestionIgnored, suggestSwaps } from "./swaps";
 import type {
   GearItem,
   SuggestedSwap,
@@ -339,7 +339,6 @@ describe("isSuggestionIgnored", () => {
     triggerWaypointId: "damascus-va",
     thresholdF: 30,
     crossedTempF: 34,
-    reason: "",
     ...over,
   });
 
@@ -362,5 +361,29 @@ describe("isSuggestionIgnored", () => {
 
   it("is false when nothing is ignored", () => {
     expect(isSuggestionIgnored({ ...plan, ignoredSuggestions: undefined }, sug())).toBe(false);
+  });
+});
+
+describe("describeSuggestion", () => {
+  const base: SuggestedSwap = {
+    itemId: "puffy",
+    action: "add",
+    waypointId: "neels-gap",
+    triggerWaypointId: "hiawassee-ga",
+    thresholdF: 41,
+    crossedTempF: 30.2,
+  };
+  const names = { item: "Down puffy", trigger: "Hiawassee", at: "Neels Gap" };
+
+  it("describes a pick-up in °F by default", () => {
+    expect(describeSuggestion(base, names)).toBe(
+      "Lows drop to 30°F at Hiawassee (≤ 41°F threshold) — pick up “Down puffy” in Neels Gap.",
+    );
+  });
+
+  it("describes a send-home in °C", () => {
+    expect(describeSuggestion({ ...base, action: "remove", crossedTempF: 50 }, names, "C")).toBe(
+      "Lows rise to 10°C by Hiawassee (> 5°C threshold) — send “Down puffy” home from Neels Gap.",
+    );
   });
 });

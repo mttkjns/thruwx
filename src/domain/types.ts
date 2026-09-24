@@ -290,8 +290,6 @@ export interface SuggestedSwap {
   thresholdF: number;
   /** The corrected low at the trigger point that caused the crossing. */
   crossedTempF: number;
-  /** Human-readable rationale for the UI. */
-  reason: string;
 }
 
 /**

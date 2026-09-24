@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { HikeChart } from "../components/HikeChart";
 import { LoadClimateCard } from "../components/LoadClimateCard";
 import { PlanSummary } from "../components/PlanSummary";
-import { fmtDate, fmtTemp, tempColor } from "../components/format";
+import { fmtDate, tempColor, useTempFormat } from "../components/format";
 import { useProjection, WAYPOINTS } from "../state/useProjection";
 
 const POSITIONS = WAYPOINTS.map((w) => [w.lat, w.lng] as [number, number]);
@@ -48,6 +48,7 @@ export default function MapView() {
   // On touch devices the map starts locked so swipes scroll the page; the
   // button over the map unlocks panning and zooming.
   const [locked, setLocked] = useState(IS_TOUCH);
+  const { temp } = useTempFormat();
 
   return (
     <div className="space-y-4">
@@ -120,7 +121,7 @@ export default function MapView() {
                     {weather ? (
                       <p className="mt-0.5">
                         <span className="font-medium">
-                          {fmtTemp(weather.correctedMinF)}/{fmtTemp(weather.correctedMaxF)}
+                          {temp(weather.correctedMinF)}/{temp(weather.correctedMaxF)}
                         </span>{" "}
                         · ❄ {Math.round(weather.freezeProbability * 100)}% · ☂{" "}
                         {Math.round(weather.precipProbability * 100)}%

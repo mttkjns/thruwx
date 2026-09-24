@@ -37,7 +37,7 @@ interface PlanState {
   resetPlan: () => void;
 }
 
-const noopStorage: Storage = {
+export const noopStorage: Storage = {
   length: 0,
   clear: () => {},
   getItem: () => null,
