@@ -104,6 +104,22 @@ export interface DailyNormal {
  */
 export type ClimateData = Record<StationId, DailyNormal[]>;
 
+/**
+ * Trail elevation along the whole AT, generated to src/data/profile.json by
+ * scripts/build-profile.ts. Samples every `stepMi` NOBO trail miles, plus every
+ * waypoint's exact trailElevationFt; miles strictly increasing. Derived from
+ * OpenStreetMap geometry, so the file is ODbL (credit OSM contributors).
+ */
+export interface ElevationProfile {
+  source: string;
+  license: string;
+  /** Build date, IsoDate. */
+  generated: IsoDate;
+  stepMi: number;
+  /** [trailMile, elevationFt] pairs in ascending trailMile. */
+  samples: [number, number][];
+}
+
 /* ------------------------------------------------------------------ */
 /* Layer 2: user plan (the ONLY persisted state)                       */
 /* ------------------------------------------------------------------ */

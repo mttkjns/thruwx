@@ -4,13 +4,14 @@ import { addDays } from "../domain/dates";
 import { usePlanStore } from "../state/planStore";
 import { downloadText } from "../state/planIO";
 import { tableCsvFileName, tableToCsv } from "../state/tableCsv";
+import { useSectionProfile } from "../state/useProfile";
 import { useProjection, WAYPOINTS } from "../state/useProjection";
 import { fmtDate } from "./format";
 
 /**
- * Conditions along the hike: date on x; three stacked panels (temperature,
- * wet-day chance, daylight) sharing that axis. THREE units means three
- * panels — never a second y-axis. The checkbox row filters series and doubles
+ * Conditions along the hike: date on x; four stacked panels (temperature,
+ * wet-day chance, daylight, elevation) sharing that axis. Four units means
+ * four panels — never a second y-axis. The checkbox row filters series and doubles
  * as the legend (colored line keys + labels). Full moons are muted vertical
  * reference lines across all panels.
  *
@@ -30,6 +31,9 @@ const COLOR = {
   high: "#eb6834", // slot 2 orange
   wet: "#1baf7a", // slot 3 aqua
   daylight: "#eda100", // slot 4 yellow
+  // Neutral ink, not a palette slot: terrain is context for the weather
+  // series, not a fifth categorical identity.
+  elev: "#7a7972",
 };
 
 // viewBox width ≈ the rendered pixel width of the desktop side-by-side column,
@@ -43,6 +47,7 @@ const X_AXIS_H = 28;
 
 const NAME_BY_ID = new Map(WAYPOINTS.map((w) => [w.id, w.name]));
 const MILE_BY_ID = new Map(WAYPOINTS.map((w) => [w.id, w.trailMile]));
+const ELEV_BY_ID = new Map(WAYPOINTS.map((w) => [w.id, w.trailElevationFt]));
 
 interface Pt {
   waypointId: string;
@@ -50,13 +55,14 @@ interface Pt {
   date: string;
   name: string;
   trailMile: number;
+  elevationFt: number;
   lowF: number | null;
   highF: number | null;
   wetPct: number | null;
   daylightH: number;
 }
 
-type SeriesKey = "high" | "low" | "wet" | "daylight";
+type SeriesKey = "high" | "low" | "wet" | "daylight" | "elev";
 
 function segments(pts: Pt[], get: (p: Pt) => number | null, sx: (d: number) => number, sy: (v: number) => number): string {
   let d = "";
@@ -98,12 +104,14 @@ export function HikeChart({
 }) {
   const plan = usePlanStore((s) => s.plan);
   const projection = useProjection();
+  const profile = useSectionProfile();
 
   const [show, setShow] = useState<Record<SeriesKey, boolean>>({
     high: true,
     low: true,
     wet: true,
     daylight: true,
+    elev: true,
   });
   const [showMoons, setShowMoons] = useState(true);
   const [hover, setHover] = useState<number | null>(null);
@@ -117,6 +125,7 @@ export function HikeChart({
         date: pw.arrivalDate,
         name: NAME_BY_ID.get(pw.waypointId) ?? pw.waypointId,
         trailMile: MILE_BY_ID.get(pw.waypointId) ?? 0,
+        elevationFt: ELEV_BY_ID.get(pw.waypointId) ?? 0,
         lowF: pw.weather ? pw.weather.correctedMinF : null,
         highF: pw.weather ? pw.weather.correctedMaxF : null,
         wetPct: pw.weather ? pw.weather.precipProbability * 100 : null,
@@ -140,6 +149,13 @@ export function HikeChart({
   const dayVals = pts.map((p) => p.daylightH);
   const dayMin = Math.floor(Math.min(...dayVals) - 0.5);
   const dayMax = Math.ceil(Math.max(...dayVals) + 0.5);
+  // Profile samples sit at their continuous day (miles hiked / pace); the
+  // waypoint points above use the schedule's whole days, so a waypoint can
+  // sit up to a day left of where the profile passes it.
+  const elevPts = profile.map((p) => ({ day: p.milesHiked / plan.paceMilesPerDay, elevationFt: p.elevationFt }));
+  const elevVals = elevPts.map((p) => p.elevationFt);
+  const elevMin = Math.floor(Math.min(...elevVals) / 1000) * 1000;
+  const elevMax = Math.ceil(Math.max(...elevVals) / 1000) * 1000;
 
   /* ---- panel layout ---------------------------------------------- */
   const showTemp = show.high || show.low;
@@ -169,6 +185,9 @@ export function HikeChart({
   if (show.daylight)
     push("daylight", "Daylight (hours)", 90, dayMin, dayMax,
       ticksBetween(dayMin, dayMax, 2), (v) => `${v}h`);
+  if (show.elev)
+    push("elev", "Trail elevation (ft)", 90, elevMin, elevMax,
+      ticksBetween(elevMin, elevMax, elevMax - elevMin > 3000 ? 2000 : 1000), (v) => `${v / 1000}k`);
   const H = cursor + X_AXIS_H;
 
   const syFor = (p: Panel) => (v: number) => p.top + p.h - ((v - p.min) / (p.max - p.min)) * p.h;
@@ -219,6 +238,7 @@ export function HikeChart({
           show.low && hovered.lowF !== null && { key: "low", label: "Low", value: `${Math.round(hovered.lowF)}°F` },
           show.wet && hovered.wetPct !== null && { key: "wet", label: "Wet chance", value: `${Math.round(hovered.wetPct)}%` },
           show.daylight && { key: "daylight", label: "Daylight", value: `${hovered.daylightH.toFixed(1)}h` },
+          show.elev && { key: "elev", label: "Elevation", value: `${hovered.elevationFt.toLocaleString()} ft` },
         ].filter(Boolean) as { key: SeriesKey; label: string; value: string }[]);
 
   const toggles: { key: SeriesKey; label: string }[] = [
@@ -226,6 +246,7 @@ export function HikeChart({
     { key: "low", label: "Low temp" },
     { key: "wet", label: "Wet chance" },
     { key: "daylight", label: "Daylight" },
+    { key: "elev", label: "Elevation" },
   ];
 
   /* ---- render ------------------------------------------------------ */
@@ -277,7 +298,7 @@ export function HikeChart({
             viewBox={`0 0 ${W} ${H}`}
             className="w-full touch-none select-none"
             role="img"
-            aria-label="Chart of temperature, wet-day chance, and daylight across the hike. Use arrow keys to step through waypoints; values also appear in the data table below."
+            aria-label="Chart of temperature, wet-day chance, daylight, and trail elevation across the hike. Use arrow keys to step through waypoints; values also appear in the data table below."
             tabIndex={0}
             onPointerMove={(e) => pickNearest(e.clientX)}
             onPointerLeave={() => setHoverBoth(null)}
@@ -319,6 +340,20 @@ export function HikeChart({
                     </>
                   )}
 
+                  {p.key === "elev" && (() => {
+                    const line = elevPts.map((e, i) => `${i ? "L" : "M"}${sx(e.day).toFixed(1)},${sy(e.elevationFt).toFixed(1)}`).join("");
+                    const base = (p.top + p.h).toFixed(1);
+                    const area = elevPts.length > 1
+                      ? `M${sx(elevPts[0].day).toFixed(1)},${base}${line.replace(/^M/, "L")}L${sx(elevPts[elevPts.length - 1].day).toFixed(1)},${base}Z`
+                      : "";
+                    return (
+                      <>
+                        <path d={area} fill={COLOR.elev} opacity="0.15" />
+                        <path d={line} fill="none" stroke={COLOR.elev} strokeWidth="1.5" strokeLinejoin="round" />
+                      </>
+                    );
+                  })()}
+
                   {/* hover markers: ≥8px dot with 2px surface ring */}
                   {hovered &&
                     (p.key === "temp"
@@ -329,7 +364,9 @@ export function HikeChart({
                         ? <circle cx={sx(hovered.day)} cy={sy(hovered.wetPct)} r="4.5" fill={COLOR.wet} stroke={SURFACE} strokeWidth="2" />
                         : p.key === "daylight"
                           ? <circle cx={sx(hovered.day)} cy={sy(hovered.daylightH)} r="4.5" fill={COLOR.daylight} stroke={SURFACE} strokeWidth="2" />
-                          : null)}
+                          : p.key === "elev"
+                            ? <circle cx={sx(hovered.day)} cy={sy(hovered.elevationFt)} r="4.5" fill={COLOR.elev} stroke={SURFACE} strokeWidth="2" />
+                            : null)}
                 </g>
               );
             })}
@@ -397,6 +434,7 @@ export function HikeChart({
             <thead>
               <tr className="text-left text-neutral-500">
                 <th className="py-1 pr-2 font-normal">Waypoint</th>
+                <th className="py-1 pr-2 text-right font-normal">Elev ft</th>
                 <th className="py-1 pr-2 font-normal">Date</th>
                 <th className="py-1 pr-2 text-right font-normal">Low °F</th>
                 <th className="py-1 pr-2 text-right font-normal">High °F</th>
@@ -413,6 +451,7 @@ export function HikeChart({
                   onMouseLeave={() => setHoverBoth(null)}
                 >
                   <td className="py-1 pr-2">{p.name}</td>
+                  <td className="py-1 pr-2 text-right">{p.elevationFt.toLocaleString()}</td>
                   <td className="py-1 pr-2">{fmtDate(p.date)}</td>
                   <td className="py-1 pr-2 text-right">{p.lowF === null ? "—" : Math.round(p.lowF)}</td>
                   <td className="py-1 pr-2 text-right">{p.highF === null ? "—" : Math.round(p.highF)}</td>

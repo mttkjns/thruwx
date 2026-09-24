@@ -2,7 +2,7 @@
  * Position-over-time projection — the engine everything else hangs off.
  */
 import { addDays } from "./dates";
-import { hikeSection } from "./section";
+import { hikeSection, sectionStartMile } from "./section";
 import type { IsoDate, TripPlan, Waypoint, WaypointId } from "./types";
 
 export interface ScheduleEntry {
@@ -27,11 +27,7 @@ export function projectSchedule(plan: TripPlan, waypoints: Waypoint[]): Schedule
     throw new Error(`paceMilesPerDay must be positive, got ${plan.paceMilesPerDay}`);
   }
   const section = hikeSection(plan, waypoints);
-  // A chosen start waypoint is day 0. Without one, a NOBO hike starts at
-  // Springer (mile 0 by definition) and a SOBO hike at the highest mile,
-  // which is where hikeSection already begins.
-  const chosenStart = section[0].id === plan.startWaypointId;
-  const startMile = chosenStart || plan.direction === "SOBO" ? section[0].trailMile : 0;
+  const startMile = sectionStartMile(plan, section);
   return section.map((wp) => {
     const milesHiked = Math.abs(wp.trailMile - startMile);
     const dayOfHike = Math.floor(milesHiked / plan.paceMilesPerDay);

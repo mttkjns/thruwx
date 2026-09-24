@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:climate": "tsx scripts/build-climate.ts"
+    "build:climate": "tsx scripts/build-climate.ts",
+    "build:profile": "tsx scripts/build-profile.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

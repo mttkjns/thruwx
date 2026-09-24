@@ -7,6 +7,7 @@ import type { HikeDirection } from "../domain/types";
 export interface CsvRow {
   name: string;
   trailMile: number; // NOBO mile marker (0 = Springer) in either direction
+  elevationFt: number; // trail elevation at the waypoint
   date: string; // ISO yyyy-mm-dd
   lowF: number | null;
   highF: number | null;
@@ -14,7 +15,7 @@ export interface CsvRow {
   daylightH: number;
 }
 
-const HEADER = ["Waypoint", "Mile", "Date", "Low °F", "High °F", "Wet %", "Daylight (h)"];
+const HEADER = ["Waypoint", "Mile", "Elevation (ft)", "Date", "Low °F", "High °F", "Wet %", "Daylight (h)"];
 
 function cell(v: string | number | null): string {
   if (v === null) return "";
@@ -22,12 +23,12 @@ function cell(v: string | number | null): string {
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** Same values the data table shows: temps and wet % rounded, daylight to 0.1 h; missing weather → empty cell. */
+/** Same values the data table shows: elevation, temps and wet % rounded, daylight to 0.1 h; missing weather → empty cell. */
 export function tableToCsv(rows: CsvRow[]): string {
   const round = (v: number | null) => (v === null ? null : Math.round(v));
   const lines = [
     HEADER,
-    ...rows.map((r) => [r.name, r.trailMile.toFixed(1), r.date, round(r.lowF), round(r.highF), round(r.wetPct), r.daylightH.toFixed(1)]),
+    ...rows.map((r) => [r.name, r.trailMile.toFixed(1), Math.round(r.elevationFt), r.date, round(r.lowF), round(r.highF), round(r.wetPct), r.daylightH.toFixed(1)]),
   ];
   return lines.map((l) => l.map(cell).join(",")).join("\r\n") + "\r\n";
 }

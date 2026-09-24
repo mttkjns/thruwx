@@ -28,3 +28,14 @@ export function hikeSection(plan: TripPlan, waypoints: Waypoint[]): Waypoint[] {
   if (end <= start) end = ordered.length - 1;
   return ordered.slice(start, end + 1);
 }
+
+/**
+ * Trail mile where the hike begins (day 0, zero miles hiked). A chosen start
+ * waypoint is day 0. Without one, a NOBO hike starts at Springer (mile 0 by
+ * definition) and a SOBO hike at the highest mile, which is where hikeSection
+ * already begins.
+ */
+export function sectionStartMile(plan: TripPlan, section: Waypoint[]): number {
+  const chosenStart = section[0].id === plan.startWaypointId;
+  return chosenStart || plan.direction === "SOBO" ? section[0].trailMile : 0;
+}
