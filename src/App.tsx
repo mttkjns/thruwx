@@ -62,7 +62,12 @@ export default function App() {
           corrected from each weather station to the trail's elevation at 3.5°F per
           1,000 ft. They describe <span className="font-medium">typical</span>{" "}
           conditions for a date — <span className="font-medium">not a forecast</span>.
-          Any given week can be far colder, hotter, or wetter. Elevations from USGS 3DEP.
+          Any given week can be far colder, hotter, or wetter. Elevations from USGS 3DEP;
+          trail profile follows{" "}
+          <a href="https://www.openstreetmap.org/copyright" className="underline hover:text-neutral-700">
+            © OpenStreetMap contributors
+          </a>{" "}
+          (ODbL).
         </p>
         <p className="mt-2 text-center">
           Comments or Suggestions?{" "}

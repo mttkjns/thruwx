@@ -1,3 +1,4 @@
+import type { Leg } from "../domain/profile";
 import type { Waypoint, WaypointProjection } from "../domain/types";
 import { useClimateStore } from "../state/climateStore";
 import {
@@ -8,18 +9,25 @@ import {
   MOON_EMOJI,
   moonLabel,
 } from "./format";
+import { LegProfile } from "./LegProfile";
 import { TempBand } from "./TempBand";
 
 /**
  * One waypoint on the timeline: arrival, corrected temps (with the station →
- * trail correction inspectable), precip, sun, moon.
+ * trail correction inspectable), precip, sun, moon, and the elevation profile
+ * of the leg walked to get here.
  */
 export function WaypointRow({
   waypoint,
   projection,
+  leg,
+  legFromName,
 }: {
   waypoint: Waypoint;
   projection: WaypointProjection;
+  /** Absent for the first waypoint of the section. */
+  leg?: Leg;
+  legFromName?: string | null;
 }) {
   const w = projection.weather;
   const climateReady = useClimateStore((s) => s.status === "ready");
@@ -41,6 +49,8 @@ export function WaypointRow({
           · day {projection.dayOfHike}
         </p>
       </div>
+
+      {leg && <LegProfile leg={leg} fromName={legFromName ?? null} />}
 
       {w ? (
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-center">

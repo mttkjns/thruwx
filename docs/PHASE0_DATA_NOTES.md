@@ -104,3 +104,47 @@ Highlands→Grandfather Mtn (5,280 ft), Mt Washington→its summit station.
 - [x] Elevation source + licensing confirmed; 3 test points verified.
 
 **Phase 2 is unblocked.**
+
+## Decision 3 — Elevation profile: OSM line + 3DEP samples (spike 2026-09-24)
+
+Goal: elevation between waypoints, for a profile chart and per-leg gain/loss.
+The spike script was throwaway; the real pipeline will be `scripts/build-profile.ts`.
+
+**Trail line: OpenStreetMap AT superroute, relation 156553.**
+- Fetched with Overpass (send a `User-Agent`, since overpass-api.de returns 406
+  without one; fall back to a mirror such as overpass.private.coffee when busy).
+  The superroute nests 12 per-state route relations (plus a node and approach
+  ways, which we skip).
+- Stitching: chain each child relation's untagged/`forward`/`backward` ways by
+  nearest endpoint, *then* orient each child chain against the previous end.
+  Children are not stored in one direction (the VA relation runs south), so
+  per-way flipping alone leaves a ~278 mi false gap. Done right, the line has
+  **zero gaps > 0.05 mi** from Springer to Katahdin.
+- Stitched length is **2,107 mi vs 2,197.4 official** (~4% short; Maine ~12%
+  short). The line is not used for distance: miles come from calibration.
+- **Calibration anchors:** only 25 of 44 waypoints lie within 0.5 mi of the
+  line. The rest are town coordinates 1–10 mi off-trail (Franklin 9.9, Gatlinburg
+  8.0, Hiawassee 7.6, Rangeley 6.6, Killington 6.4 …), so they can't be anchors.
+  Kent CT (0.42 mi off) gives inconsistent leg ratios (1.21 then 0.72), so use a
+  tighter threshold of ~0.25 mi.
+- **License: ODbL.** Credit "© OpenStreetMap contributors" in the app. The
+  shipped mile→elevation table is a derivative database and must be offered
+  under ODbL. The geometry itself is not shipped.
+
+**Elevations: USGS 3DEP ImageServer `getSamples`** (public domain, the same 3DEP
+data as EPQS).
+- `POST https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/getSamples`
+  with an `esriGeometryMultipoint` in WGS84. Values are **meters**; results are
+  unordered, so sort by `locationId`. Checked: Springer 1,148.8 m = 3,769 ft,
+  Clingmans Dome 2,024.9 m = 6,643 ft, Mt Washington 1,912 m = 6,274 ft
+  (matching EPQS).
+- Batches must be **contiguous** points: 100 contiguous 0.5 mi samples take
+  ~11 s, while 100 points spread along the whole trail time out (504). The full
+  trail at 0.5 mi is ~4,400 points, about 44 batches and ~8 min. EPQS
+  per-point (~1.2 s/pt at 5 concurrent) would take ~90 min.
+- 0.5 mi sampling clips summits (the Smokies' max sample was 6,552 ft vs
+  Clingmans' 6,643), so insert each waypoint's exact elevation as a sample.
+
+Fallback if ODbL is unacceptable: the ATC/NPS APPA centerline (ScienceBase,
+GPS 1999–2010, no explicit license, citation requested). ATC's GIS Data
+Agreement page returned 403, so its terms are unverified.
