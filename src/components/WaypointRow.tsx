@@ -38,7 +38,7 @@ export function WaypointRow({
           <h3 className="truncate font-semibold text-neutral-900">
             {waypoint.name}
             <span className="ml-1.5 text-sm font-normal text-neutral-500">
-              {waypoint.state} · mi {waypoint.trailMile.toFixed(0)}
+              {waypoint.state}
             </span>
           </h3>
         </div>
@@ -46,7 +46,7 @@ export function WaypointRow({
           <span className="font-medium text-neutral-900">
             {fmtDate(projection.arrivalDate)}
           </span>{" "}
-          · day {projection.dayOfHike}
+          · day {projection.dayOfHike} · mi {waypoint.trailMile.toFixed(0)}
         </p>
       </div>
 
