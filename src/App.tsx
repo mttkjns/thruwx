@@ -80,6 +80,10 @@ export default function App() {
           <a href="mailto:mail@thruwx.com" className="underline hover:text-neutral-700">
             mail@thruwx.com
           </a>
+          {" · "}
+          <a href="https://github.com/mttkjns/thruwx" target="_blank" className="underline hover:text-neutral-700">
+           GitHub
+          </a>
         </p>
       </footer>
     </div>
